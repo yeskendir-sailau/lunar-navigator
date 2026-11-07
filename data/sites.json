@@ -9,18 +9,66 @@
     "date": "1969-07-20",
     "status": "historic site",
     "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf",
-    "description": "First crewed landing on the Moon."
+    "description": "First crewed landing on the Moon, in the Sea of Tranquility."
   },
   {
     "id": "apollo12",
     "name": "Apollo 12",
     "country": "USA",
     "type": "heritage",
-    "lat": -3.01239,
-    "lon": -23.42157,
+    "lat": -3.0128,
+    "lon": -23.4219,
     "date": "1969-11-19",
     "status": "historic site",
-    "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf",
-    "description": "Second crewed landing on the Moon."
+    "source": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "description": "Second crewed landing, a precise touchdown close to the Surveyor 3 probe in the Ocean of Storms."
+  },
+  {
+    "id": "apollo14",
+    "name": "Apollo 14",
+    "country": "USA",
+    "type": "heritage",
+    "lat": -3.64589,
+    "lon": -17.47194,
+    "date": "1971-02-05",
+    "status": "historic site",
+    "source": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "description": "Third crewed landing, in the Fra Mauro highlands."
+  },
+  {
+    "id": "apollo15",
+    "name": "Apollo 15",
+    "country": "USA",
+    "type": "heritage",
+    "lat": 26.13239,
+    "lon": 3.6333,
+    "date": "1971-07-30",
+    "status": "historic site",
+    "source": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "description": "First mission with a lunar rover, landing at Hadley Rille near the Apennine mountains."
+  },
+  {
+    "id": "apollo16",
+    "name": "Apollo 16",
+    "country": "USA",
+    "type": "heritage",
+    "lat": -8.9734,
+    "lon": 15.5011,
+    "date": "1972-04-21",
+    "status": "historic site",
+    "source": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "description": "First landing in the lunar highlands, in the Descartes region."
+  },
+  {
+    "id": "apollo17",
+    "name": "Apollo 17",
+    "country": "USA",
+    "type": "heritage",
+    "lat": 20.1911,
+    "lon": 30.7723,
+    "date": "1972-12-11",
+    "status": "historic site",
+    "source": "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html",
+    "description": "The last crewed landing on the Moon, in the Taurus-Littrow valley."
   }
 ]
