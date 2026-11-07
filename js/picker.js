@@ -1,0 +1,98 @@
+// Модуль 3: выбор точки кликом.
+// Клик по Луне -> белое кольцо + широта/долгота.
+// Клик рядом с меткой места -> то же, плюс камера подлетает и открывается карточка.
+import * as THREE from 'three';
+import { camera, renderer, moon, onFrame, flyTo } from './globe.js';
+import { latLonToVector3, vector3ToLatLon, angularDistanceDeg } from './geo.js';
+
+export function initPicker({ sites, onPoint, onSite }) {
+  const canvas = renderer.domElement;
+  const raycaster = new THREE.Raycaster();   // невидимый луч из камеры
+  const pointer = new THREE.Vector2();
+
+  // --- Белое кольцо с точкой в центре ---
+  const selector = new THREE.Group();
+  const white = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  selector.add(new THREE.Mesh(new THREE.RingGeometry(0.02, 0.026, 48), white));
+  selector.add(new THREE.Mesh(new THREE.CircleGeometry(0.005, 24), white));
+  selector.visible = false;
+  moon.parent.add(selector);
+
+  onFrame(() => {   // кольцо тоже масштабируем при приближении
+    selector.scale.setScalar(THREE.MathUtils.clamp(camera.position.length() / 4, 0.3, 2.5));
+  });
+
+  function placeSelector(lat, lon) {
+    const normal = latLonToVector3(lat, lon, 1);
+    selector.position.copy(normal).multiplyScalar(1.006);
+    selector.lookAt(normal.clone().multiplyScalar(2));   // кольцо «смотрит» наружу от Луны
+    selector.visible = true;
+  }
+
+  // --- Куда попал луч? ---
+  function hitMoon(event) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.intersectObject(moon)[0] ?? null;
+  }
+
+  // Насколько близко к метке считаем, что «попали» (в градусах по Луне).
+  // Далеко от Луны допуск больше, вблизи — меньше.
+  function tolerance() {
+    return THREE.MathUtils.clamp((camera.position.length() - 1) * 1.2, 0.5, 5);
+  }
+
+  function nearestSiteWithin(lat, lon, maxDeg) {
+    let best = null;
+    for (const site of sites) {
+      const d = angularDistanceDeg(lat, lon, site.lat, site.lon);
+      if (d <= maxDeg && (best === null || d < best.d)) best = { site, d };
+    }
+    return best ? best.site : null;
+  }
+
+  // --- Клик, а не перетаскивание ---
+  let down = null;
+  canvas.addEventListener('pointerdown', e => {
+    down = { x: e.clientX, y: e.clientY, time: performance.now() };
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!down) return;
+    const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+    const held = performance.now() - down.time;
+    down = null;
+    if (moved > 5 || held > 500) return;   // это вращение мышкой, а не клик
+
+    const hit = hitMoon(e);
+    if (!hit) return;                       // клик мимо Луны
+    const { lat, lon } = vector3ToLatLon(hit.point);
+    const site = nearestSiteWithin(lat, lon, tolerance());
+
+    if (site) {
+      placeSelector(site.lat, site.lon);
+      onPoint?.(site.lat, site.lon);
+      onSite?.(site);
+      flyTo(site.lat, site.lon);
+    } else {
+      placeSelector(lat, lon);
+      onPoint?.(lat, lon);
+      onSite?.(null);
+    }
+  });
+
+  // Курсор-«ладошка», когда мышь над меткой
+  canvas.addEventListener('pointermove', e => {
+    if (e.buttons) return;
+    const hit = hitMoon(e);
+    let over = false;
+    if (hit) {
+      const { lat, lon } = vector3ToLatLon(hit.point);
+      over = nearestSiteWithin(lat, lon, tolerance()) !== null;
+    }
+    canvas.style.cursor = over ? 'pointer' : '';
+  });
+}

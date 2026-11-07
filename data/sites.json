@@ -1,0 +1,26 @@
+[
+  {
+    "id": "apollo11",
+    "name": "Apollo 11",
+    "country": "USA",
+    "type": "heritage",
+    "lat": 0.67408,
+    "lon": 23.47297,
+    "date": "1969-07-20",
+    "status": "historic site",
+    "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf",
+    "description": "First crewed landing on the Moon."
+  },
+  {
+    "id": "apollo12",
+    "name": "Apollo 12",
+    "country": "USA",
+    "type": "heritage",
+    "lat": -3.01239,
+    "lon": -23.42157,
+    "date": "1969-11-19",
+    "status": "historic site",
+    "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf",
+    "description": "Second crewed landing on the Moon."
+  }
+]
