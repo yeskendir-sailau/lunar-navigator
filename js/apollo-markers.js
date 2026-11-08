@@ -52,6 +52,7 @@ function makeLabelSprite(THREE, text) {
   canvas.height = 64;
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  
   ctx.beginPath();
   ctx.roundRect(0, 8, 256, 48, 12);
   ctx.fill();

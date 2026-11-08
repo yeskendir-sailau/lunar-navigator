@@ -55,6 +55,23 @@ export function initPicker({ sites, onPoint, onSite }) {
     return best ? best.site : null;
   }
 
+  // Выбор точки: если рядом метка места — открываем её карточку и летим к ней,
+  // иначе просто ставим кольцо (а при вводе координат ещё и летим туда).
+  function choose(lat, lon, tolDeg, flyAlways) {
+    const site = nearestSiteWithin(lat, lon, tolDeg);
+    if (site) {
+      placeSelector(site.lat, site.lon);
+      onPoint?.(site.lat, site.lon);
+      onSite?.(site);
+      flyTo(site.lat, site.lon);
+    } else {
+      placeSelector(lat, lon);
+      onPoint?.(lat, lon);
+      onSite?.(null);
+      if (flyAlways) flyTo(lat, lon);
+    }
+  }
+
   // --- Клик, а не перетаскивание ---
   let down = null;
   canvas.addEventListener('pointerdown', e => {
@@ -70,18 +87,7 @@ export function initPicker({ sites, onPoint, onSite }) {
     const hit = hitMoon(e);
     if (!hit) return;                       // клик мимо Луны
     const { lat, lon } = vector3ToLatLon(hit.point);
-    const site = nearestSiteWithin(lat, lon, tolerance());
-
-    if (site) {
-      placeSelector(site.lat, site.lon);
-      onPoint?.(site.lat, site.lon);
-      onSite?.(site);
-      flyTo(site.lat, site.lon);
-    } else {
-      placeSelector(lat, lon);
-      onPoint?.(lat, lon);
-      onSite?.(null);
-    }
+    choose(lat, lon, tolerance(), false);
   });
 
   // Курсор-«ладошка», когда мышь над меткой
@@ -95,4 +101,7 @@ export function initPicker({ sites, onPoint, onSite }) {
     }
     canvas.style.cursor = over ? 'pointer' : '';
   });
+
+  // Выбор точки «из кода» (ввод координат или названия): кольцо, карточка и полёт камеры
+  return { selectPoint: (lat, lon) => choose(lat, lon, 0.3, true) };
 }

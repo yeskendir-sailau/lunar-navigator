@@ -48,6 +48,21 @@ sun.position.set(5, 2, 5);
 scene.add(sun);
 scene.add(new THREE.AmbientLight(0xffffff, 0.15));
 
+// Свет Земли («пепельный свет»): слабый голубоватый свет со стороны Земли,
+// чтобы ночная сторона Луны не была совсем чёрной
+const earthshine = new THREE.DirectionalLight(0x9db4ff, 0.35);
+earthshine.position.set(5, 0, 0);
+scene.add(earthshine);
+
+// Направить Солнце и Землю по реальным данным.
+// Принимают направление в осях three.js: (x, y, z) = (X, Z, -Y) из системы Луны (см. geo.js).
+export function setSunDirection(x, y, z) {
+  sun.position.set(x, y, z).multiplyScalar(5);
+}
+export function setEarthDirection(x, y, z) {
+  earthshine.position.set(x, y, z).multiplyScalar(5);
+}
+
 // 8. ЗВЁЗДЫ
 const starCount = 4000;
 const starPositions = new Float32Array(starCount * 3);

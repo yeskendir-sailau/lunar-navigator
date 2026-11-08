@@ -1,5 +1,6 @@
-// Панель «Солнце и Земля в выбранной точке»: время (UTC), высота Солнца и Земли над горизонтом,
+// Панель «Солнце и Земля в выбранной точке»: высота Солнца и Земли над горизонтом,
 // ближайшие восход/закат, прямая видимость Земли (связь) и график на 30 суток вперёд.
+// Время приходит снаружи (setTime), его выбирает панель времени (time-bar.js).
 // Не зависит от three.js. Всё создаётся кодом, поэтому в HTML ничего добавлять не нужно.
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
 
@@ -14,8 +15,6 @@ function fmtUtc(ms) {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
          `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
 }
-const toInputValue = ms => new Date(ms).toISOString().slice(0, 16);   // для <input type="datetime-local">
-const fromInputValue = v => Date.parse(v.length === 16 ? v + ':00Z' : v + 'Z');   // читаем как UTC
 
 function fmtDuration(ms) {
   const mins = Math.round(ms / 60000);
@@ -49,17 +48,8 @@ export function createAstroPanel(eph) {
       transition: opacity .3s ease, transform .3s ease;
     }
     .astro-panel.open { opacity: 1; transform: none; pointer-events: auto; }
-    .astro-panel h3 { margin: 0 0 8px; font-size: 15px; }
-    .astro-panel .time { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
-    .astro-panel input {
-      flex: 1; min-width: 0; padding: 4px 6px; color: #e8edf5; background: #141b29;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
-      color-scheme: dark;
-    }
-    .astro-panel button {
-      padding: 4px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
-    }
+    .astro-panel h3 { margin: 0 0 4px; font-size: 15px; }
+    .astro-panel .timeline { color: #9fb0c8; margin-bottom: 8px; }
     .astro-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0 0 8px; }
     .astro-panel dt { color: #9fb0c8; }
     .astro-panel dd { margin: 0; text-align: right; }
@@ -73,16 +63,8 @@ export function createAstroPanel(eph) {
   // --- Разметка ---
   const el = make('div', 'astro-panel');
   el.appendChild(make('h3', '', 'Sun & Earth at this point'));
-
-  const timeRow = make('div', 'time');
-  const input = make('input');
-  input.type = 'datetime-local';
-  input.min = toInputValue(eph.startMs);
-  input.max = toInputValue(eph.endMs);
-  input.setAttribute('aria-label', 'Time, UTC');
-  const nowBtn = make('button', '', 'Now');
-  timeRow.append(make('span', '', 'UTC'), input, nowBtn);
-  el.appendChild(timeRow);
+  const timeLine = make('div', 'timeline');
+  el.appendChild(timeLine);
 
   const status = make('p', 'status');
   el.appendChild(status);
@@ -101,15 +83,15 @@ export function createAstroPanel(eph) {
   const linkRow = row('Direct link to Earth');
   el.appendChild(list);
 
-  el.appendChild(make('div', 'legend'));   // заполняем ниже
-  const legend = el.lastChild;
+  const canvas = make('canvas');
+  el.appendChild(canvas);
+  const legend = make('div', 'legend');
   for (const [name, color] of [['Sun elevation', SUN_COLOR], ['Earth elevation', EARTH_COLOR]]) {
     const item = make('span', '', '● ' + name);
     item.style.color = color;
     legend.appendChild(item);
   }
-  const canvas = make('canvas');
-  el.insertBefore(canvas, legend);
+  el.appendChild(legend);
   el.appendChild(make('div', 'note',
     `Next ${CHART_DAYS} days from the chosen time. Flat horizon, no terrain: mountains and crater walls ` +
     'can shorten daylight and block the view of Earth.'));
@@ -119,7 +101,6 @@ export function createAstroPanel(eph) {
   let lat = null;
   let lon = null;
   let ms = inDataRange(eph, Date.now()) ? Date.now() : eph.startMs;
-  input.value = toInputValue(ms);
 
   function drawChart(series) {
     const W = 286;
@@ -143,7 +124,6 @@ export function createAstroPanel(eph) {
 
     ctx.font = '10px system-ui, sans-serif';
     ctx.fillStyle = '#7f8fa6';
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 1;
     for (const e of [90, 0, -90]) {
       ctx.beginPath();
@@ -177,13 +157,14 @@ export function createAstroPanel(eph) {
     line(series.sun, SUN_COLOR);
   }
 
-  function eventText(crossing, ms) {
+  function eventText(crossing, now) {
     return crossing
-      ? `in ${fmtDuration(crossing.timeMs - ms)} (${fmtUtc(crossing.timeMs)})`
+      ? `in ${fmtDuration(crossing.timeMs - now)} (${fmtUtc(crossing.timeMs)})`
       : 'not within the next 31 days';
   }
 
   function render() {
+    timeLine.textContent = Number.isFinite(ms) ? `Time: ${fmtUtc(ms)}` : '';
     if (lat === null) return;
     const c = Number.isFinite(ms) ? conditionsAt(eph, lat, lon, ms) : null;
     if (!c) {
@@ -209,15 +190,7 @@ export function createAstroPanel(eph) {
     drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
   }
 
-  input.addEventListener('change', () => {
-    ms = fromInputValue(input.value);
-    render();
-  });
-  nowBtn.addEventListener('click', () => {
-    ms = inDataRange(eph, Date.now()) ? Date.now() : eph.startMs;
-    input.value = toInputValue(ms);
-    render();
-  });
+  render();
 
   return {
     // Вызывается, когда выбрана точка на Луне
@@ -225,6 +198,11 @@ export function createAstroPanel(eph) {
       lat = newLat;
       lon = newLon;
       el.classList.add('open');
+      render();
+    },
+    // Вызывается, когда меняется время (панель времени)
+    setTime(newMs) {
+      ms = newMs;
       render();
     },
   };

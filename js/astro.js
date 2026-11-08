@@ -43,7 +43,7 @@ export function inDataRange(eph, ms) {
 }
 
 // Направление на тело в момент ms: берём два ближайших часа и плавно «смешиваем»
-function directionAt(eph, body, ms) {
+export function directionAt(eph, body, ms) {
   const f = (ms - eph.startMs) / eph.stepMs;
   if (!(f >= 0) || f > eph.count - 1) return null;   // за пределами данных
   const i = Math.min(Math.floor(f), eph.count - 2);
