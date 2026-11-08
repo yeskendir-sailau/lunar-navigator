@@ -3,29 +3,11 @@
 // Время приходит снаружи (setTime), его выбирает панель времени (time-bar.js).
 // Не зависит от three.js. Всё создаётся кодом, поэтому в HTML ничего добавлять не нужно.
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
+import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
 
 const SUN_COLOR = '#f8f4e3';
 const EARTH_COLOR = '#7aa2ff';
 const CHART_DAYS = 30;
-
-const pad = n => String(n).padStart(2, '0');
-
-function fmtUtc(ms) {
-  const d = new Date(ms);
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ` +
-         `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
-}
-
-function fmtDuration(ms) {
-  const mins = Math.round(ms / 60000);
-  const d = Math.floor(mins / 1440);
-  const h = Math.floor((mins % 1440) / 60);
-  const m = mins % 60;
-  if (d > 0) return `${d} d ${h} h`;
-  if (h > 0) return `${h} h ${m} min`;
-  return `${m} min`;
-}
-const fmtDeg = v => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}°`;
 
 function make(tag, className, text) {
   const el = document.createElement(tag);
@@ -34,7 +16,8 @@ function make(tag, className, text) {
   return el;
 }
 
-export function createAstroPanel(eph) {
+// onPin(slot, lat, lon) вызывается кнопками «Set as A / B» (сравнение мест)
+export function createAstroPanel(eph, { onPin } = {}) {
   const style = document.createElement('style');
   style.textContent = `
     .astro-panel {
@@ -50,6 +33,11 @@ export function createAstroPanel(eph) {
     .astro-panel.open { opacity: 1; transform: none; pointer-events: auto; }
     .astro-panel h3 { margin: 0 0 4px; font-size: 15px; }
     .astro-panel .timeline { color: #9fb0c8; margin-bottom: 8px; }
+    .astro-panel .pins { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; color: #9fb0c8; }
+    .astro-panel .pins button {
+      padding: 3px 10px; color: #e8edf5; background: #1d2740; cursor: pointer; font: inherit;
+      border: 1px solid rgba(255,255,255,.25); border-radius: 6px;
+    }
     .astro-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0 0 8px; }
     .astro-panel dt { color: #9fb0c8; }
     .astro-panel dd { margin: 0; text-align: right; }
@@ -65,6 +53,18 @@ export function createAstroPanel(eph) {
   el.appendChild(make('h3', '', 'Sun & Earth at this point'));
   const timeLine = make('div', 'timeline');
   el.appendChild(timeLine);
+
+  // Кнопки сравнения: запомнить эту точку как место A или B
+  const pinRow = make('div', 'pins');
+  pinRow.appendChild(make('span', '', 'Compare:'));
+  for (const slot of ['A', 'B']) {
+    const button = make('button', '', `Set as ${slot}`);
+    button.addEventListener('click', () => {
+      if (lat !== null) onPin?.(slot, lat, lon);
+    });
+    pinRow.appendChild(button);
+  }
+  el.appendChild(pinRow);
 
   const status = make('p', 'status');
   el.appendChild(status);

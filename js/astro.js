@@ -116,6 +116,38 @@ export function nextCrossing(eph, body, lat, lon, fromMs, maxHours = 24 * 31, st
   return null;
 }
 
+// Сводка по ближайшим `days` суткам от момента fromMs: доля светлого времени, самая длинная ночь,
+// доля времени с видимой Землёй, самый долгий перерыв без неё. Всё считается на ровном горизонте.
+// «Самая длинная ночь» считается внутри окна: если ночь уже идёт, учитывается только её остаток.
+export function summarize(eph, lat, lon, fromMs, days = 30, stepMin = 60) {
+  const s = elevationSeries(eph, lat, lon, fromMs, days * 24, stepMin);
+  const stepH = stepMin / 60;
+
+  function stats(values) {
+    let up = 0;
+    let total = 0;
+    let run = 0;
+    let longestDown = 0;
+    for (const v of values) {
+      if (v === null) continue;
+      total++;
+      if (v > 0) { up++; run = 0; } else { run++; if (run > longestDown) longestDown = run; }
+    }
+    return { total, upPct: total ? (100 * up) / total : 0, longestDownHours: longestDown * stepH };
+  }
+
+  const sun = stats(s.sun);
+  const earth = stats(s.earth);
+  if (sun.total === 0) return null;
+  return {
+    windowHours: sun.total * stepH,
+    daylightPct: sun.upPct,
+    longestNightHours: sun.longestDownHours,
+    earthVisiblePct: earth.upPct,
+    longestEarthGapHours: earth.longestDownHours,
+  };
+}
+
 // Ряд значений для графика: высоты Солнца и Земли каждые stepMin минут
 export function elevationSeries(eph, lat, lon, fromMs, hours, stepMin = 60) {
   const out = { timesMs: [], sun: [], earth: [] };
