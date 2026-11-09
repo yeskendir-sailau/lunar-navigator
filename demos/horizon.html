@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Horizon mask</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { margin: 0; padding: 16px; background: #05070c; color: #dfe6f0; font: 14px/1.4 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 8px; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; }
+  select, input, button { background: #121826; color: #dfe6f0; border: 1px solid #2a3550; border-radius: 6px; padding: 5px 8px; font: inherit; }
+  canvas { width: 100%; max-width: 1100px; height: 380px; background: #0a0f1a; border: 1px solid #1f2940; border-radius: 8px; display: block; }
+  table { border-collapse: collapse; margin-top: 12px; }
+  td, th { border: 1px solid #1f2940; padding: 4px 10px; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .warn { color: #ffb454; margin-top: 8px; max-width: 1100px; }
+  .small { color: #8b97ad; max-width: 1100px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Маска горизонта: горы против Солнца и Земли</h1>
+<div class="row">
+  <label>Место: <select id="place"></select></label>
+  <label>Начало (UTC): <input id="start" type="date"></label>
+  <label>Дней: <input id="days" type="number" min="1" max="365" value="30" style="width:70px"></label>
+</div>
+<canvas id="cv" width="1100" height="380"></canvas>
+<div id="stats"></div>
+<div id="warn" class="warn"></div>
+<div class="small">Серая заливка — горы (по LOLA, 80 м/пиксель). Точки: жёлтые — Солнце, голубые — Земля, по одной на каждый час;
+яркая точка — тело выше гор, тусклая — спрятано за горами (или под ровным горизонтом). Критерий — центр диска.</div>
+
+<script type="module">
+import { loadEphemeris, directionAt, elevationDeg, azimuthDeg } from '../js/astro.js';
+
+const $ = (id) => document.getElementById(id);
+const eph = await loadEphemeris(new URL('../data/sun_earth.json', import.meta.url));
+let hz;
+try {
+  hz = await (await fetch(new URL('../data/horizons.json', import.meta.url))).json();
+} catch (e) { hz = null; }
+if (!hz || !hz.places?.length) {
+  $('warn').textContent = 'Нет data/horizons.json — сначала запусти python tools/make_horizons.py';
+  throw new Error('no horizons.json');
+}
+
+for (const p of hz.places) {
+  const o = document.createElement('option');
+  o.value = p.id; o.textContent = `${p.name} (${p.lat}, ${p.lon})`;
+  $('place').appendChild(o);
+}
+$('start').value = new Date(Math.max(Date.now(), eph.startMs)).toISOString().slice(0, 10);
+const FLAT = -0.087;   // ровная местность, глаз на 2 м: кривизна Луны опускает горизонт
+
+function maskAt(mask, az) {
+  const i = Math.floor(az) % 360, j = (i + 1) % 360, f = az - Math.floor(az);
+  const a = mask[i] ?? FLAT, b = mask[j] ?? FLAT;
+  return a + (b - a) * f;
+}
+
+function run() {
+  const p = hz.places.find((x) => x.id === $('place').value);
+  const days = Math.max(1, Math.min(365, +$('days').value || 30));
+  const t0 = Math.max(Date.parse($('start').value + 'T00:00:00Z'), eph.startMs);
+  const pts = { sun: [], earth: [] };
+  const cnt = { sun: { n: 0, flat: 0, terr: 0 }, earth: { n: 0, flat: 0, terr: 0 } };
+  for (let t = t0; t <= Math.min(t0 + days * 864e5, eph.endMs); t += 3600e3) {
+    for (const body of ['sun', 'earth']) {
+      const d = directionAt(eph, body, t);
+      if (!d) continue;
+      const el = elevationDeg(d, p.lat, p.lon);
+      const az = azimuthDeg(d, p.lat, p.lon);
+      const flatUp = el > FLAT, terrUp = el > maskAt(p.mask, az);
+      const c = cnt[body]; c.n++; if (flatUp) c.flat++; if (terrUp) c.terr++;
+      pts[body].push({ az, el, vis: terrUp });
+    }
+  }
+  draw(p, pts);
+  const pct = (a, n) => (n ? (100 * a / n).toFixed(1) + ' %' : '—');
+  $('stats').innerHTML = `<table><tr><th></th><th>Ровная местность</th><th>С горами</th><th>Разница</th></tr>` +
+    ['sun', 'earth'].map((b) => {
+      const c = cnt[b];
+      const diff = c.n ? (100 * (c.terr - c.flat) / c.n).toFixed(1) + ' п.п.' : '—';
+      return `<tr><td>${b === 'sun' ? 'Солнце над горизонтом' : 'Земля (связь) над горизонтом'}</td><td>${pct(c.flat, c.n)}</td><td>${pct(c.terr, c.n)}</td><td>${diff}</td></tr>`;
+    }).join('') + `</table>`;
+  const cut = p.reach_km.filter((r) => r < hz.meta.max_km * 0.5).length;
+  const nulls = p.mask.filter((v) => v === null).length;
+  $('warn').textContent = (cut || nulls)
+    ? `Внимание: в ${cut} из 360 направлений карта кончается раньше чем через ${hz.meta.max_km / 2} км (край данных LOLA, 80° ю. ш.) — там горы могут быть выше, чем нарисовано.`
+    : '';
+}
+
+function draw(p, pts) {
+  const cv = $('cv'), g = cv.getContext('2d');
+  const W = cv.width, H = cv.height, L = 48, B = 28, T = 10, Rr = 10;
+  const maskMax = Math.max(...p.mask.filter((v) => v !== null), 0);
+  const allEl = [...pts.sun, ...pts.earth].map((q) => q.el);
+  const ymax = Math.max(6, Math.ceil(maskMax + 1), Math.ceil(Math.max(0, ...allEl) + 1));
+  const ymin = -3;
+  const X = (az) => L + (az / 360) * (W - L - Rr);
+  const Y = (el) => T + (1 - (el - ymin) / (ymax - ymin)) * (H - T - B);
+  g.clearRect(0, 0, W, H);
+  g.font = '12px system-ui'; g.fillStyle = '#8b97ad'; g.strokeStyle = '#1f2940';
+  for (let el = Math.ceil(ymin); el <= ymax; el += (ymax > 12 ? 2 : 1)) {
+    g.beginPath(); g.moveTo(L, Y(el)); g.lineTo(W - Rr, Y(el)); g.stroke();
+    g.fillText(el + '°', 6, Y(el) + 4);
+  }
+  [[0, 'С'], [90, 'В'], [180, 'Ю'], [270, 'З'], [360, 'С']].forEach(([az, s]) => {
+    g.beginPath(); g.moveTo(X(az), T); g.lineTo(X(az), H - B); g.stroke();
+    g.fillText(s + ' ' + az + '°', X(az) - 14, H - 8);
+  });
+  // горы
+  g.beginPath(); g.moveTo(X(0), Y(ymin));
+  for (let a = 0; a <= 360; a++) g.lineTo(X(a), Y(p.mask[a % 360] ?? FLAT));
+  g.lineTo(X(360), Y(ymin)); g.closePath();
+  g.fillStyle = 'rgba(150,160,180,0.45)'; g.fill();
+  g.strokeStyle = '#aab4c8'; g.stroke();
+  // ровный горизонт
+  g.strokeStyle = '#ff6b6b'; g.setLineDash([5, 4]);
+  g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(W - Rr, Y(0)); g.stroke(); g.setLineDash([]);
+  // тела
+  for (const [body, color] of [['earth', '78,190,255'], ['sun', '255,214,70']]) {
+    for (const q of pts[body]) {
+      g.fillStyle = `rgba(${color},${q.vis ? 0.95 : 0.25})`;
+      g.beginPath(); g.arc(X(q.az), Y(q.el), q.vis ? 2.6 : 2, 0, 7); g.fill();
+    }
+  }
+}
+
+$('place').onchange = $('start').onchange = $('days').onchange = run;
+run();
+window.__ready = true;
+</script>
+</body>
+</html>

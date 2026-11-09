@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+tools/raw/*.TIF
+tools/raw/*.tif
+tools/raw/*.tiff

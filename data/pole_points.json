@@ -1,0 +1,7 @@
+[
+  {"id": "shackleton", "name": "Shackleton (приблизительно)", "lat": -89.9, "lon": 129.3},
+  {"id": "haworth", "name": "Haworth (приблизительно)", "lat": -87.45, "lon": -5.0},
+  {"id": "faustini", "name": "Faustini (приблизительно)", "lat": -87.3, "lon": 77.0},
+  {"id": "nobile", "name": "Nobile (приблизительно)", "lat": -85.2, "lon": 53.5},
+  {"id": "de-gerlache", "name": "de Gerlache (приблизительно)", "lat": -88.5, "lon": -87.1}
+]

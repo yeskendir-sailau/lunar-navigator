@@ -160,3 +160,14 @@ export function elevationSeries(eph, lat, lon, fromMs, hours, stepMin = 60) {
   }
   return out;
 }
+
+// Азимут тела (градусы, от севера по часовой стрелке)
+export function azimuthDeg(dir, latDeg, lonDeg) {
+  const la = latDeg * DEG;
+  const lo = lonDeg * DEG;
+  const east = [-Math.sin(lo), Math.cos(lo), 0];
+  const north = [-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)];
+  const e = dir[0] * east[0] + dir[1] * east[1] + dir[2] * east[2];
+  const n = dir[0] * north[0] + dir[1] * north[1] + dir[2] * north[2];
+  return ((Math.atan2(e, n) / DEG) + 360) % 360;
+}
