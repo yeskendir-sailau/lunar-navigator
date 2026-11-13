@@ -1,0 +1,19 @@
+{
+  "about": "Colour rules of this prototype. The percentages are our team's own choice, not official limits. The keep-out radii follow NASA's 2011 recommendations for U.S. heritage sites (Section A1-3: 2.0 km around lander sites, 0.5 km around impact sites); applying them to every landed or impact site and scaling them by lander class is our own choice.",
+  "energy": {
+    "label": "share of the next 30 days in sunlight",
+    "good_min": 60,
+    "caution_min": 40
+  },
+  "comm": {
+    "label": "share of the next 30 days with Earth above the horizon (direct link)",
+    "good_min": 80,
+    "caution_min": 40
+  },
+  "neighbours": {
+    "keepout_km": { "heritage": 2.0, "landed": 2.0, "impact": 0.5 },
+    "class_factor": { "small": 1, "medium": 1.5, "large": 3 },
+    "caution_factor": 2,
+    "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf"
+  }
+}

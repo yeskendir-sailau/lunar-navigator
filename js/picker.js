@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { camera, renderer, moon, onFrame, flyTo } from './globe.js';
 import { latLonToVector3, vector3ToLatLon, angularDistanceDeg } from './geo.js';
 
-export function initPicker({ sites, onPoint, onSite }) {
+export function initPicker({ sites, onPoint, onSite, onHover, onHoverEnd }) {
   const canvas = renderer.domElement;
   const raycaster = new THREE.Raycaster();   // невидимый луч из камеры
   const pointer = new THREE.Vector2();
@@ -18,9 +18,22 @@ export function initPicker({ sites, onPoint, onSite }) {
   selector.visible = false;
   moon.parent.add(selector);
 
-  onFrame(() => {   // кольцо тоже масштабируем при приближении
-    selector.scale.setScalar(THREE.MathUtils.clamp(camera.position.length() / 4, 0.3, 2.5));
+  // --- Цветное кольцо под курсором (предварительная оценка места) ---
+  const hoverMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  const hoverRing = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.037, 48), hoverMaterial);
+  hoverRing.visible = false;
+  moon.parent.add(hoverRing);
+
+  onFrame(() => {   // кольца тоже масштабируем при приближении
+    const s = THREE.MathUtils.clamp(camera.position.length() / 4, 0.3, 2.5);
+    selector.scale.setScalar(s);
+    hoverRing.scale.setScalar(s);
   });
+
+  function hideHover() {
+    hoverRing.visible = false;
+    onHoverEnd?.();
+  }
 
   function placeSelector(lat, lon) {
     const normal = latLonToVector3(lat, lon, 1);
@@ -90,17 +103,35 @@ export function initPicker({ sites, onPoint, onSite }) {
     choose(lat, lon, tolerance(), false);
   });
 
-  // Курсор-«ладошка», когда мышь над меткой
+  // Курсор-«ладошка», когда мышь над меткой; цветное кольцо — предварительная оценка
+  let lastHover = 0;
   canvas.addEventListener('pointermove', e => {
-    if (e.buttons) return;
+    if (e.buttons) { hideHover(); return; }   // вращаем Луну — подсказку прячем
     const hit = hitMoon(e);
     let over = false;
     if (hit) {
       const { lat, lon } = vector3ToLatLon(hit.point);
       over = nearestSiteWithin(lat, lon, tolerance()) !== null;
+      const now = performance.now();
+      if (onHover && now - lastHover > 80) {   // не чаще ~12 раз в секунду
+        lastHover = now;
+        const color = onHover(lat, lon, e.clientX, e.clientY);
+        if (color) {
+          hoverMaterial.color.set(color);
+          const normal = latLonToVector3(lat, lon, 1);
+          hoverRing.position.copy(normal).multiplyScalar(1.005);
+          hoverRing.lookAt(normal.clone().multiplyScalar(2));
+          hoverRing.visible = true;
+        } else {
+          hideHover();
+        }
+      }
+    } else {
+      hideHover();
     }
     canvas.style.cursor = over ? 'pointer' : '';
   });
+  canvas.addEventListener('pointerleave', hideHover);
 
   // Выбор точки «из кода» (ввод координат или названия): кольцо, карточка и полёт камеры
   return { selectPoint: (lat, lon) => choose(lat, lon, 0.3, true) };
