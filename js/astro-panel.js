@@ -4,6 +4,7 @@
 // Не зависит от three.js. Всё создаётся кодом, поэтому в HTML ничего добавлять не нужно.
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
 import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
+import { findHorizon, bodyState, summarizeTerrain } from './horizon.js';
 
 const SUN_COLOR = '#f8f4e3';
 const EARTH_COLOR = '#7aa2ff';
@@ -17,7 +18,7 @@ function make(tag, className, text) {
 }
 
 // onPin(slot, lat, lon) вызывается кнопками «Set as A / B» (сравнение мест)
-export function createAstroPanel(eph, { onPin } = {}) {
+export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
   const style = document.createElement('style');
   style.textContent = `
     .astro-panel {
@@ -81,7 +82,17 @@ export function createAstroPanel(eph, { onPin } = {}) {
   const earthRow = row('Earth');
   const earthEventRow = row('Earthrise / Earthset');
   const linkRow = row('Direct link to Earth');
+  // Строки про горы: показываем, только если для этой точки посчитана маска горизонта
+  const terrainRows = [
+    row('Sun above terrain'),
+    row('Earth above terrain'),
+    row('Sunlit, next 30 d'),
+    row('Earth link, next 30 d'),
+  ];
+  for (const r of terrainRows) { r.dt.style.color = '#ffd166'; }
   el.appendChild(list);
+  const terrainNote = make('p', 'status');
+  el.appendChild(terrainNote);
 
   const canvas = make('canvas');
   el.appendChild(canvas);
@@ -93,8 +104,8 @@ export function createAstroPanel(eph, { onPin } = {}) {
   }
   el.appendChild(legend);
   el.appendChild(make('div', 'note',
-    `Next ${CHART_DAYS} days from the chosen time. Flat horizon, no terrain: mountains and crater walls ` +
-    'can shorten daylight and block the view of Earth.'));
+    `Next ${CHART_DAYS} days from the chosen time. The numbers and the graph assume a flat horizon; ` +
+    'the yellow "terrain" rows (where shown) take mountains and crater walls into account.'));
   document.body.appendChild(el);
 
   // --- Состояние ---
@@ -171,6 +182,8 @@ export function createAstroPanel(eph, { onPin } = {}) {
       status.textContent = `No data for this time. Data covers ${fmtUtc(eph.startMs)} – ${fmtUtc(eph.endMs)}.`;
       for (const r of [sunRow, sunEventRow, earthRow, earthEventRow, linkRow]) r.dd.textContent = '–';
       drawChart({ timesMs: [] });
+      for (const r of terrainRows) { r.dt.hidden = true; r.dd.hidden = true; }
+      terrainNote.textContent = '';
       return;
     }
     status.textContent = '';
@@ -188,6 +201,29 @@ export function createAstroPanel(eph, { onPin } = {}) {
     earthEventRow.dd.textContent = eventText(earthX, ms);
 
     drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
+    renderTerrain();
+  }
+
+  // Горы (маска горизонта из LOLA). Для точек без маски строки скрыты.
+  function renderTerrain() {
+    const place = findHorizon(horizons, lat, lon);
+    for (const r of terrainRows) { r.dt.hidden = !place; r.dd.hidden = !place; }
+    if (!place) {
+      terrainNote.textContent = horizons
+        ? 'Terrain: no horizon mask for this point (computed only for a few places near the south pole).'
+        : '';
+      return;
+    }
+    terrainNote.textContent = `Terrain: horizon mask for ${place.name} (LOLA, 80 m per pixel).`;
+    const fmtState = s => (s
+      ? `${s.visible ? 'Yes' : 'No'} · ${fmtDeg(s.elevation)} vs mountains ${fmtDeg(s.mask)} at ${s.azimuth.toFixed(0)}°`
+      : '–');
+    terrainRows[0].dd.textContent = fmtState(bodyState(eph, place, 'sun', ms));
+    terrainRows[1].dd.textContent = fmtState(bodyState(eph, place, 'earth', ms));
+    const sum = summarizeTerrain(eph, place, ms, CHART_DAYS);
+    const pct = v => (v === null ? '–' : `${v.toFixed(0)} %`);
+    terrainRows[2].dd.textContent = `${pct(sum.sunTerrainPct)} (flat: ${pct(sum.sunFlatPct)})`;
+    terrainRows[3].dd.textContent = `${pct(sum.earthTerrainPct)} (flat: ${pct(sum.earthFlatPct)})`;
   }
 
   render();
