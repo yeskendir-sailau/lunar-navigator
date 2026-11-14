@@ -9,6 +9,8 @@ export const LEVELS = {
   bad:  { icon: '✕', word: 'Risky',   color: '#ff5c5c' },
 };
 const ORDER = ['ok', 'warn', 'bad'];
+import { maskAt, FLAT_DEG } from './horizon.js';
+
 const MOON_KM = 1737.4;
 
 export async function loadThresholds(url) {
@@ -39,31 +41,72 @@ export function distanceKm(lat1, lon1, lat2, lon2) {
   return 2 * MOON_KM * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-// Соседи: у каждого места своя «запретная зона» (keep-out). Её радиус зависит от типа места
-// и умножается на класс аппарата. Промах посадки (precision) съедает часть расстояния.
-// Возвращает { level, worst, nearest }: worst — самый «опасный» сосед, nearest — ближайший.
-export function rateNeighbours(lat, lon, sites, precisionM, landerClass, th) {
+// ---------- Модуль 7: безопасность соседей (перенос расчётов из lsz_core.py) ----------
+
+// Азимут от точки 1 к точке 2: градусы от севера по часовой стрелке (0 — север, 90 — восток)
+export function bearingDeg(lat1, lon1, lat2, lon2) {
+  const r = Math.PI / 180;
+  const dl = (lon2 - lon1) * r;
+  const y = Math.sin(dl) * Math.cos(lat2 * r);
+  const x = Math.cos(lat1 * r) * Math.sin(lat2 * r) - Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos(dl);
+  return ((Math.atan2(y, x) / r) + 360) % 360;
+}
+
+// Под каким углом над ровным горизонтом виден верх соседа (с учётом кривизны Луны).
+// Та же формула, что в tools/make_horizons.py: tan(e) = (r1*cos(t) - r0) / (r1*sin(t)).
+export function topElevationDeg(distKm, eyeM, neighbourM) {
+  const theta = (distKm * 1000) / (MOON_KM * 1000);
+  const r0 = MOON_KM * 1000 + eyeM;
+  const r1 = MOON_KM * 1000 + neighbourM;
+  return (Math.atan2(r1 * Math.cos(theta) - r0, r1 * Math.sin(theta)) * 180) / Math.PI;
+}
+
+// Прямая видимость соседа. Без маски гор — только кривизна Луны (flat), с маской — ещё и горы.
+// shieldedByTerrain: на ровной местности сосед был бы виден, но гора его закрывает (приближение).
+function lineOfSight(km, bearing, place, nb) {
+  const el = topElevationDeg(km, nb.eye_height_m ?? 2, nb.neighbour_height_m ?? 3);
+  const flatVisible = el > FLAT_DEG;
+  const mask = place ? maskAt(place, bearing) : FLAT_DEG;
+  const visible = el > mask;
+  return { visible, shieldedByTerrain: place ? flatVisible && !visible : false, elevation: el, mask };
+}
+
+// Соседи. Для каждого защищаемого места:
+//  - запретная зона NASA: max(радиус по типу места × класс аппарата, 3σ точности посадки) -> ✕
+//  - гравий долетает до gravel_km: если сосед ближе и виден напрямую -> !
+//  - пыль: расстояния не даём, только список соседей в прямой видимости
+// Горы (маска place) смягчают только гравий и пыль; правило NASA остаётся правилом.
+// Возвращает { level, worst, nearest, items, dust }.
+export function rateNeighbours(lat, lon, sites, sigmaM, landerClass, th, place = null) {
   const nb = th.neighbours;
   const factor = nb.class_factor[landerClass] ?? 1;
-  let level = 'ok';
-  let worst = null;
-  let nearest = null;
+  const sigmaKm = (nb.sigma_factor * sigmaM) / 1000;
+  const items = [];
   for (const site of sites) {
     const keepout = nb.keepout_km[site.type];
-    if (!(keepout > 0)) continue;                 // будущие цели и т. п. не защищаем
+    if (!(keepout > 0)) continue;                       // будущие цели и т. п. не защищаем
     const km = distanceKm(lat, lon, site.lat, site.lon);
-    const gapKm = km - precisionM / 1000;         // худший случай: промахнулись в сторону соседа
-    const zoneKm = keepout * factor;
-    const l = gapKm < zoneKm ? 'bad' : gapKm < zoneKm * nb.caution_factor ? 'warn' : 'ok';
-    const info = { site, km, gapKm, zoneKm, level: l };
-    if (!nearest || km < nearest.km) nearest = info;
-    if (ORDER.indexOf(l) > ORDER.indexOf(level) ||
-        (l === level && l !== 'ok' && (!worst || gapKm - zoneKm < worst.gapKm - worst.zoneKm))) {
-      level = l;
-      worst = info;
+    const zoneKm = Math.max(keepout * factor, sigmaKm);
+    const los = lineOfSight(km, bearingDeg(lat, lon, site.lat, site.lon), place, nb);
+    let level = 'ok';
+    let reason = 'outside';
+    if (km < zoneKm) { level = 'bad'; reason = 'keepout'; }
+    else if (km <= nb.gravel_km) {
+      if (los.visible) { level = 'warn'; reason = 'gravel'; } else { reason = 'gravel-shielded'; }
+    }
+    items.push({ site, km, zoneKm, level, reason, los, sigmaDecides: sigmaKm > keepout * factor });
+  }
+  items.sort((a, b) => a.km - b.km);
+  let level = 'ok';
+  let worst = null;
+  for (const it of items) {
+    const rank = ORDER.indexOf(it.level);
+    if (rank > ORDER.indexOf(level) || (rank === ORDER.indexOf(level) && rank > 0 && it.km - it.zoneKm < worst.km - worst.zoneKm)) {
+      level = it.level;
+      worst = it;
     }
   }
-  return { level, worst, nearest };
+  return { level, worst, nearest: items[0] ?? null, items, dust: items.filter(it => it.los.visible) };
 }
 
 // Итог — по самому плохому из трёх блоков

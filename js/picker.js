@@ -134,5 +134,7 @@ export function initPicker({ sites, onPoint, onSite, onHover, onHoverEnd }) {
   canvas.addEventListener('pointerleave', hideHover);
 
   // Выбор точки «из кода» (ввод координат или названия): кольцо, карточка и полёт камеры
-  return { selectPoint: (lat, lon) => choose(lat, lon, 0.3, true) };
+  // Введённые координаты считаем точно (допуск ~30 м): иначе точка в 1 км от метки превратилась бы
+  // в саму метку, и отчёт «Соседи» показал бы 0 м. Название места даёт ровно координаты метки.
+  return { selectPoint: (lat, lon) => choose(lat, lon, 0.001, true) };
 }

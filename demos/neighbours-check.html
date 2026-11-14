@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neighbours self-check</title>
+<style>
+  body { background: #0a0e16; color: #e8edf5; font: 14px/1.5 system-ui, sans-serif; padding: 16px; max-width: 900px; }
+  .ok { color: #3ddc84; } .bad { color: #ff5c5c; font-weight: 700; }
+  li { margin-bottom: 4px; } code { color: #9fb0c8; }
+  #sum { font-size: 18px; margin: 12px 0; }
+</style>
+</head>
+<body>
+<h1>Module 7: neighbours self-check</h1>
+<p>Golden numbers were computed in Python (<code>lsz_core.haversine_m</code> and pyproj on a sphere of radius 1737.4 km).
+The JavaScript port must reproduce them.</p>
+<div id="sum">Running…</div>
+<ul id="out"></ul>
+<script type="module">
+import { loadThresholds, distanceKm, bearingDeg, rateNeighbours, overallLevel } from '../js/rules.js';
+
+const out = document.getElementById('out');
+let failed = 0, total = 0;
+function check(name, pass, detail = '') {
+  total++; if (!pass) failed++;
+  const li = document.createElement('li');
+  li.className = pass ? 'ok' : 'bad';
+  li.textContent = `${pass ? '✓' : '✕'} ${name}${detail ? ' — ' + detail : ''}`;
+  out.appendChild(li);
+}
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+
+const th = await loadThresholds(new URL('../data/thresholds.json', import.meta.url));
+const sites = await (await fetch(new URL('../data/sites.json', import.meta.url))).json();
+const S = id => sites.find(s => s.id === id);
+
+// 1. Haversine: JS = Python (metres)
+const golden = [
+  ['apollo12', 'surveyor3', 156.76889369594775],
+  ['apollo11', 'apollo12', 1425837.05347145],
+  ['apollo15', 'apollo17', 776169.104829964],
+  ['chandrayaan3', 'vikram', 108243.94348234747],
+  ['change4', 'change6', 631954.6996951997],
+  ['im1', 'chandrayaan3', 398035.43400502973],
+];
+for (const [a, b, py] of golden) {
+  const js = distanceKm(S(a).lat, S(a).lon, S(b).lat, S(b).lon) * 1000;
+  check(`distance ${a} – ${b}`, near(js, py, 0.001), `JS ${js.toFixed(3)} m, Python ${py.toFixed(3)} m`);
+}
+
+// 2. Apollo 12 and Surveyor 3: 155–160 m, red verdict from either side
+const d12 = distanceKm(S('apollo12').lat, S('apollo12').lon, S('surveyor3').lat, S('surveyor3').lon) * 1000;
+check('Apollo 12 – Surveyor 3 is 155–160 m', d12 >= 155 && d12 <= 160, `${d12.toFixed(1)} m`);
+for (const [here, other] of [['surveyor3', 'apollo12'], ['apollo12', 'surveyor3']]) {
+  const r = rateNeighbours(S(here).lat, S(here).lon, [S(other)], 100, 'small', th);
+  check(`landing at ${here}: verdict red because of ${other}`, r.level === 'bad' && r.worst.site.id === other);
+}
+
+// 3. NASA keep-out, heritage site (2 km) and the 3-sigma rule
+const a11 = S('apollo11');
+const at = (lat, lon, sigma = 100, cls = 'small', list = [a11], place = null) =>
+  rateNeighbours(lat, lon, list, sigma, cls, th, place);
+check('1.9 km from Apollo 11: red', at(0.736738, 23.47297).level === 'bad');
+check('2.1 km from Apollo 11: green', at(0.7433336, 23.47297).level === 'ok');
+check('2.5 km from Apollo 11, precision 1σ = 1000 m (3σ = 3 km): red', at(0.7565247, 23.47297, 1000).level === 'bad');
+check('2.5 km from Apollo 11, precision 100 m: green', at(0.7565247, 23.47297, 100).level === 'ok');
+check('46 km from Apollo 11: green', at(2.1910628, 23.47297).level === 'ok');
+check('2.5 km from Apollo 11, large class (zone 6 km): red', at(0.7565247, 23.47297, 100, 'large').level === 'bad');
+
+// 4. Impact site: 0.5 km keep-out, gravel 1.5 km
+const l25 = S('luna25');
+const l25at = (lat, lon) => rateNeighbours(lat, lon, [l25], 100, 'small', th);
+check('0.3 km from Luna 25 (impact): red', l25at(-57.8649986, 61.3785995).level === 'bad');
+check('1.0 km from Luna 25: yellow (gravel)', l25at(-57.8649849, 61.4219983).level === 'warn');
+check('3.0 km from Luna 25: green', l25at(-57.864864, 61.5459944).level === 'ok');
+
+// 5. Line of sight, dust and terrain shielding (synthetic neighbours on the equator)
+const mk = (lon, id) => ({ id, name: id, type: 'impact', lat: 0, lon });
+const east5 = mk(0.1648894, 'east5km'), east8 = mk(0.2638231, 'east8km');
+check('bearing to the east is 90°', near(bearingDeg(0, 0, 0, 0.1648894), 90, 0.001));
+check('bearing to the north is 0°', near(bearingDeg(0, 0, 1, 0), 0, 0.001));
+check('dust: neighbour 5 km away is in direct line of sight',
+  rateNeighbours(0, 0, [east5], 100, 'small', th).dust.length === 1);
+check('dust: neighbour 8 km away is behind the Moon’s curvature',
+  rateNeighbours(0, 0, [east8], 100, 'small', th).dust.length === 0);
+const wall = { name: 'test wall', mask: Array(360).fill(1.0) };    // 1° mountains in every direction
+const near1 = mk(0.0329779, 'east1km');                            // about 1 km east
+const noTerrain = rateNeighbours(0, 0, [near1], 100, 'small', th);
+const withWall = rateNeighbours(0, 0, [near1], 100, 'small', th, wall);
+check('1 km neighbour without terrain: yellow (gravel)', noTerrain.level === 'warn');
+check('1 km neighbour behind a 1° mountain: green and marked as shielded',
+  withWall.level === 'ok' && withWall.items[0].reason === 'gravel-shielded' && withWall.dust.length === 0);
+const inside = rateNeighbours(0, 0, [mk(0.0049467, 'east150m')], 100, 'small', th, wall);
+check('150 m neighbour behind a mountain: still red (NASA rule stays)',
+  inside.level === 'bad' && inside.worst.los.shieldedByTerrain);
+
+// 6. Overall = worst of the three
+check('overall level is the worst one', overallLevel(['ok', 'bad', 'warn']) === 'bad' && overallLevel([null, 'ok']) === 'ok');
+
+document.getElementById('sum').innerHTML = failed
+  ? `<span class="bad">${failed} of ${total} checks FAILED</span>`
+  : `<span class="ok">All ${total} checks passed</span>`;
+window.__done = { failed, total };
+</script>
+</body>
+</html>

@@ -67,7 +67,7 @@ export function createReportCard({ eph, sites, horizons, thresholds }) {
 
   // Параметры миссии (дата — в панели времени сверху)
   const params = make('div', 'params');
-  const precisionLabel = make('label', '', 'Landing precision, m');
+  const precisionLabel = make('label', '', 'Landing precision (1σ), m');
   const precision = make('input');
   precision.type = 'number'; precision.min = '10'; precision.max = '10000'; precision.step = '10';
   precision.value = '100';
@@ -104,8 +104,11 @@ export function createReportCard({ eph, sites, horizons, thresholds }) {
       <li><b>Neighbours</b> — keep-out zone around existing hardware: ${n.keepout_km.heritage} km around lander sites,
         ${n.keepout_km.impact} km around impact sites, multiplied by the lander class
         (small ×${n.class_factor.small}, medium ×${n.class_factor.medium}, large ×${n.class_factor.large}).
-        The landing precision is subtracted from the distance (worst case). ✕ Risky inside the zone,
-        ! Caution closer than ${n.caution_factor}× the zone, ✓ Good otherwise.</li>
+        If ${n.sigma_factor}× the landing precision (3σ) is larger, that is the zone. ✕ Risky inside the zone.
+        ! Caution if a neighbour is within ~${n.gravel_km} km (gravel range) and in direct line of sight.
+        Dust has no distance limit: the card lists neighbours in direct line of sight that it may reach.
+        Line of sight uses the Moon's curvature and, near the south pole, the LOLA horizon mask
+        (approximation: terrain softens gravel and dust only; the NASA keep-out rule still applies).</li>
       <li><b>Overall</b> — the worst of the three.</li>
       <li>Sun and Earth: hourly positions from JPL DE421 (Skyfield), centre of the disc. Near the south pole,
         where a LOLA horizon mask exists, mountains are taken into account; elsewhere the horizon is flat.</li>
@@ -134,7 +137,7 @@ export function createReportCard({ eph, sites, horizons, thresholds }) {
     const terrain = place && flat ? summarizeTerrain(eph, place, ms, DAYS, stepMin) : null;
     const sunPct = terrain ? terrain.sunTerrainPct : flat?.daylightPct ?? null;
     const earthPct = terrain ? terrain.earthTerrainPct : flat?.earthVisiblePct ?? null;
-    const nb = rateNeighbours(pLat, pLon, sites, precisionM, landerClass, thresholds);
+    const nb = rateNeighbours(pLat, pLon, sites, precisionM, landerClass, thresholds, place);
     const energy = rateEnergy(sunPct, thresholds);
     const comm = rateComm(earthPct, thresholds);
     return { flat, place, sunPct, earthPct, nb, energy, comm,
@@ -145,8 +148,37 @@ export function createReportCard({ eph, sites, horizons, thresholds }) {
     const b = make('div', 'block');
     const head = make('div', 'head');
     head.append(make('span', '', title), badge(level));
-    b.append(head, make('div', 'what', what), make('div', 'text', text));
+    b.append(head, make('div', 'what', what));
+    for (const line of Array.isArray(text) ? text : [text]) b.appendChild(make('div', 'text', line));
     return b;
+  }
+
+  const dist = km => (km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`);
+
+  // Текст блока «Соседи»: вердикт, гравий, пыль (модуль 7)
+  function neighbourLines(nb, place) {
+    const w = nb.worst ?? nb.nearest;
+    if (!w) return ['No protected sites in the list.'];
+    const lines = [];
+    const zone = `${w.zoneKm.toFixed(1)} km${w.sigmaDecides ? ' (3σ of landing precision)' : ''}`;
+    if (w.reason === 'keepout') {
+      lines.push(`Inside the keep-out zone of ${w.site.name}: ${dist(w.km)} away, zone ${zone}.`);
+      if (w.los.shieldedByTerrain) {
+        lines.push('Terrain in between may shield debris (approximation), but the NASA keep-out rule still applies.');
+      }
+    } else if (w.reason === 'gravel') {
+      lines.push(`Gravel from the landing can reach ${w.site.name}: ${dist(w.km)} away, gravel range ~1.5 km.`);
+    } else {
+      lines.push(`Nearest: ${w.site.name}, ${dist(w.km)} away. Keep-out zone ${zone}.`);
+      if (w.reason === 'gravel-shielded') lines.push('Within gravel range but hidden behind terrain or the horizon (approximation).');
+    }
+    if (nb.dust.length) {
+      const names = nb.dust.slice(0, 3).map(d => `${d.site.name} (${dist(d.km)})`).join(', ');
+      lines.push(`Dust: may reach any neighbour in direct line of sight: ${names}${nb.dust.length > 3 ? ', …' : ''}.`);
+    } else {
+      lines.push(`Dust: no neighbour in direct line of sight (Moon's curvature${place ? ' and terrain' : ''}). Approximation.`);
+    }
+    return lines;
   }
 
   function render() {
@@ -173,13 +205,7 @@ export function createReportCard({ eph, sites, horizons, thresholds }) {
         : `Earth above the horizon ${pct(r.earthPct)} of the next ${DAYS} days, ${horizonText}.` +
           (r.flat && !r.place ? ` Longest gap: ${fmtHours(r.flat.longestEarthGapHours)}.` : '')));
 
-    const w = r.nb.worst ?? r.nb.nearest;
-    const nbText = w
-      ? `${r.nb.worst ? '' : 'Nearest: '}${w.site.name} is ${w.km.toFixed(1)} km away ` +
-        `(${(r.precisionM / 1000).toFixed(2)} km precision taken off). Keep-out for a ${r.landerClass} lander: ` +
-        `${w.zoneKm.toFixed(1)} km.`
-      : 'No protected sites in the list.';
-    body.appendChild(block('🏛 Neighbours', 'Is historic or active hardware too close?', r.nb.level, nbText));
+    body.appendChild(block('🏛 Neighbours', 'Is historic or active hardware too close?', r.nb.level, neighbourLines(r.nb, r.place)));
   }
 
   precision.addEventListener('input', render);
