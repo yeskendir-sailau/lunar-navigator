@@ -93,7 +93,8 @@ function make(tag, className, text) {
 
 // Панель на странице. setSlot('A'|'B'|'C', lat, lon) добавляет место, setTime(ms) и setAccuracy(m) пересчитывают.
 // onSlotChange(slot, place | null) — сообщает, что место A/B/C поставили или убрали (main.js рисует метку на Луне)
-export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSlotChange }) {
+// onPdf — кнопка «PDF» в шапке таблицы
+export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSlotChange, onPdf }) {
   const el = make('div', 'compare');
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Compare places');
@@ -104,6 +105,17 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
   head.appendChild(closeBtn);
   const table = make('table');
   const foot = make('div', 'compare-note');
+  const pdfBtn = make('button', 'pdf', 'PDF');
+  pdfBtn.title = 'Download the report with this comparison as a PDF file';
+  pdfBtn.addEventListener('click', async () => {
+    if (!onPdf || pdfBtn.disabled) return;
+    pdfBtn.disabled = true;
+    pdfBtn.textContent = '…';
+    try { await onPdf(); } catch (error) { console.error(error); alert('Could not make the PDF: ' + error.message); }
+    pdfBtn.disabled = false;
+    pdfBtn.textContent = 'PDF';
+  });
+  head.insertBefore(pdfBtn, closeBtn);
   el.appendChild(head);
   addFold(el, head, [], { before: closeBtn });   // «−» / «+» перед крестиком
   el.append(table, foot);
@@ -170,5 +182,6 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
     },
     setTime(newMs) { ms = newMs; render(); },
     setAccuracy(m) { acc = m; render(); },
+    getSlots: () => ({ ...slots }),
   };
 }

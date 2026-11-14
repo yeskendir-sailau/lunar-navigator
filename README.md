@@ -79,6 +79,11 @@ _Table to be filled in from the output of `tools/horizons_check.mjs`. Not filled
 - The "Lander size" list (Small CLPS / Medium heavy cargo / Large crewed) is a note only: we do not yet have a verified rule for what it would change, so it does not change any colour. The weight ranges in it are approximate.
 - **This is not a tool for real mission planning.**
 
+## Extra features
+- **PDF report**: "Download PDF" in the report card (or "PDF" in the comparison table) saves the report with charts, nearest sites and, if places A / B / C are set, the comparison table. It uses [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (MIT licence), stored in `vendor/` so it works offline.
+- **Light theme**: the button in the top right corner switches between the dark (space) theme and a light grey one. The choice is remembered in the browser.
+- **Tour**: after Start the site asks if you want a 1-minute tour (11 steps; the rest of the screen is blurred). The `?` button replays it.
+
 ## Updating the data
 
 `tools/check_sources.py` runs once a day through GitHub Actions (`.github/workflows/update.yml`). If one of the source pages changed, it opens a GitHub issue "Check what's new in the sources". It never changes the map by itself: a person reads the issue and decides. Next step: automatic suggestions for new sites.

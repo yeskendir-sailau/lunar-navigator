@@ -1,0 +1,65 @@
+/* Светлая тема: светло-серые ПАНЕЛИ. Космос (фон, звёзды, стартовый экран) остаётся тёмным.
+   Включается атрибутом <html data-theme="light"> (js/theme.js).
+   Панели рисуют свои стили сами, поэтому здесь мы их перекрашиваем (!important — чтобы быть главнее). */
+html[data-theme="light"] {
+  --panel: rgba(238, 240, 244, 0.93);
+  --panel-line: rgba(30, 40, 60, 0.18);
+  --text: #1d2430;
+  --muted: #566173;
+  --accent: #1f86b0;
+  color-scheme: light;
+}
+
+/* Сами панели */
+html[data-theme="light"] .report-card, html[data-theme="light"] .astro-panel, html[data-theme="light"] .time-bar,
+html[data-theme="light"] .coords-box, html[data-theme="light"] .view-controls, html[data-theme="light"] .site-card,
+html[data-theme="light"] .compare, html[data-theme="light"] .top-tools button, html[data-theme="light"] .tour-tip,
+html[data-theme="light"] .tour-ask .box {
+  background: var(--panel) !important; color: var(--text) !important; border-color: var(--panel-line) !important;
+  box-shadow: 0 6px 24px rgba(30, 40, 60, 0.12);
+}
+html[data-theme="light"] .howto-modal { background: #eef0f4 !important; color: var(--text) !important; border-color: var(--panel-line) !important; }
+html[data-theme="light"] .howto h3, html[data-theme="light"] .howto a, html[data-theme="light"] .site-card a { color: var(--accent) !important; }
+html[data-theme="light"] .howto-close { background: rgba(0,0,0,.08) !important; color: var(--text) !important; }
+
+/* Второстепенный (серый) текст */
+html[data-theme="light"] .report-card .when, html[data-theme="light"] .report-card .verdict .text,
+html[data-theme="light"] .report-card .params, html[data-theme="light"] .report-card .block .w,
+html[data-theme="light"] .report-card .block ul, html[data-theme="light"] .report-card .size-note,
+html[data-theme="light"] .report-card .small, html[data-theme="light"] .astro-panel .timeline,
+html[data-theme="light"] .astro-panel .pins, html[data-theme="light"] .astro-panel dt,
+html[data-theme="light"] .astro-panel .status, html[data-theme="light"] .astro-panel .legend,
+html[data-theme="light"] .astro-panel .note, html[data-theme="light"] .time-bar .slider-row,
+html[data-theme="light"] .coords-box .msg, html[data-theme="light"] .site-card .meta,
+html[data-theme="light"] .site-card .credit, html[data-theme="light"] .view-controls .note,
+html[data-theme="light"] .compare-note, html[data-theme="light"] .compare th { color: var(--muted) !important; }
+html[data-theme="light"] .astro-panel dd.sub, html[data-theme="light"] .report-card .block .why,
+html[data-theme="light"] .compare .slot { color: var(--text) !important; }
+html[data-theme="light"] .report-card .verdict { background: rgba(30, 40, 60, 0.06) !important; }
+html[data-theme="light"] .compare th, html[data-theme="light"] .compare td { border-bottom-color: rgba(30, 40, 60, 0.1) !important; }
+
+/* Кнопки и поля ввода */
+html[data-theme="light"] .report-card .actions button,
+html[data-theme="light"] .time-bar button, html[data-theme="light"] .coords-box button,
+html[data-theme="light"] .view-controls button, html[data-theme="light"] .fold-btn,
+html[data-theme="light"] .compare-close, html[data-theme="light"] .compare .clear, html[data-theme="light"] .compare .pdf {
+  background: #dde1e8 !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important;
+}
+/* у кнопок Set as A/B/C левый край цветной (цвет места) — его не трогаем */
+html[data-theme="light"] .astro-panel .pins button {
+  background: #dde1e8 !important; color: var(--text) !important;
+  border-top-color: rgba(30, 40, 60, 0.25) !important; border-right-color: rgba(30, 40, 60, 0.25) !important; border-bottom-color: rgba(30, 40, 60, 0.25) !important;
+}
+html[data-theme="light"] .view-controls button[aria-pressed="true"] { background: #4cc9f0 !important; color: #0b0f17 !important; border-color: #4cc9f0 !important; }
+html[data-theme="light"] .report-card select, html[data-theme="light"] .time-bar select,
+html[data-theme="light"] .time-bar input, html[data-theme="light"] .coords-box input {
+  background: #ffffff !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important; color-scheme: light;
+}
+html[data-theme="light"] .time-bar input[type=range] { background: transparent !important; accent-color: var(--accent); }
+
+/* Подсказка у курсора */
+html[data-theme="light"] .hover-tip { background: rgba(238, 240, 244, 0.95) !important; color: var(--text) !important; border-color: var(--panel-line) !important; }
+
+/* Жёлтый текст «Caution» на светлой панели плохо читается — делаем его темнее (заливки кружков не трогаем) */
+html[data-theme="light"] .report-card .word[style*="241, 196, 15"],
+html[data-theme="light"] .compare td[style*="241, 196, 15"] { color: #a67c00 !important; }

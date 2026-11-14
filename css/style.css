@@ -51,8 +51,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .compare.open { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 .compare-head { display: flex; align-items: center; justify-content: space-between; }
 .compare h3 { margin: 0 0 6px; font-size: 16px; }
-.compare-head .fold-btn { margin-left: auto; }
-.compare-close, .compare .clear {
+.compare-head .pdf { margin-left: auto; }
+.compare-close, .compare .clear, .compare .pdf {
   color: var(--text); background: #1d2740; cursor: pointer; font: inherit;
   border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 2px 8px;
 }

@@ -1,5 +1,5 @@
 // Сборка: соединяем модули, как детали Lego.
-import { setSunDirection, setEarthDirection, setLightMode, viewFromEarth } from './globe.js';
+import { setSunDirection, setEarthDirection, setLightMode, viewFromEarth, setSceneTheme, flyTo, renderer, scene, camera } from './globe.js';
 import { loadSites, addMarkers } from './sites.js';
 import { initPicker } from './picker.js';
 import { createCard } from './card.js';
@@ -13,11 +13,20 @@ import { buildReport, STATUS } from './report-logic.js';
 import { createReportCard } from './report-card.js';
 import { createViewControls } from './view-controls.js';
 import { createStartScreen } from './start-screen.js';
+import { createTopTools, getTheme } from './theme.js';
+import { askTour, runTour } from './tour.js';
 
 const url = path => new URL(path, import.meta.url);
 
 // Главный экран: только на страницах с <body data-start> (index.html). Луна уже загружается под ним.
-if (document.body.hasAttribute('data-start')) createStartScreen();
+const hasStart = document.body.hasAttribute('data-start');
+let startTour = () => {};   // настоящая функция появится ниже, когда панели будут готовы
+if (hasStart) createStartScreen({ onStart: () => setTimeout(() => askTour({ onYes: () => startTour() }), 650) });
+
+// Тема (тёмная / светло-серая) и кнопка «?» — обучение
+createTopTools({ onHelp: () => startTour() });
+setSceneTheme(getTheme());
+window.addEventListener('themechange', e => setSceneTheme(e.detail));
 
 // --- Данные ---
 let sites = [];
@@ -56,6 +65,7 @@ const reportCard = th ? createReportCard({
   th,
   hasTerrain: Boolean(horizons),
   onAccuracy: () => { refresh(); compare?.setAccuracy(reportCard.getAccuracy()); },
+  onPdf: () => downloadPdf(),
 }) : null;
 const compare = th ? createCompare({
   eph, sites, th, horizons,
@@ -65,6 +75,7 @@ const compare = th ? createCompare({
     if (place) picker?.setSlotMarker(slot, place.lat, place.lon);
     else picker?.clearSlotMarker(slot);
   },
+  onPdf: () => downloadPdf(),
 }) : null;
 const astro = eph ? createAstroPanel(eph, {
   onPin: (slot, lat, lon) => compare?.setSlot(slot, lat, lon),
@@ -133,4 +144,44 @@ createViewControls({
   hasEarth: Boolean(eph),
   onLight: setLightMode,
   onEarthView: viewFromEarth,
+});
+
+// --- PDF-отчёт: снимок Луны + отчёт + сравнение (js/pdf-report.js грузится только по кнопке) ---
+function snapshotMoon() {
+  try {
+    renderer.render(scene, camera);   // свежий кадр, иначе картинка может быть пустой
+    const src = renderer.domElement;
+    const side = Math.min(src.width, src.height) * 0.8;   // ближе к Луне
+    const out = document.createElement('canvas');
+    out.width = 900; out.height = 900;
+    out.getContext('2d').drawImage(src, (src.width - side) / 2, (src.height - side) / 2, side, side, 0, 0, 900, 900);
+    return out.toDataURL('image/jpeg', 0.88);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+async function downloadPdf() {
+  if (!th) return;
+  const { exportPdf } = await import('./pdf-report.js');
+  await exportPdf({
+    ctx,
+    point,
+    ms: timeMs,
+    accuracyM: reportCard.getAccuracy(),
+    landerLabel: reportCard.getLanderLabel(),
+    slots: compare?.getSlots() ?? {},
+    snapshot: snapshotMoon(),
+  });
+}
+
+// --- Обучение: если точка ещё не выбрана, выбираем пример, чтобы все панели были на экране ---
+const TOUR_POINT = { lat: 23.86, lon: 14.15 };
+startTour = () => runTour({
+  prepare: () => {
+    if (!point) picker.selectPoint(TOUR_POINT.lat, TOUR_POINT.lon);
+    const p = point ?? TOUR_POINT;
+    flyTo(p.lat, p.lon, 4);   // отлетаем, чтобы была видна вся Луна
+  },
 });

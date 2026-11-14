@@ -90,7 +90,8 @@ function buildHowTo(th, hasTerrain) {
   return box;
 }
 
-export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
+// onPdf — кнопка «Download PDF» (main.js собирает отчёт)
+export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) {
   const style = document.createElement('style');
   style.textContent = `
     .report-card {
@@ -123,7 +124,8 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
     .report-card .block .h { font-size: 12px; }
     .report-card .block ul { margin: 2px 0 0; padding-left: 16px; color: #9fb0c8; font-size: 12px; }
     .report-card .block .why { color: #e8edf5; font-size: 12px; margin-top: 2px; }
-    .report-card .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .report-card .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+    .report-card .actions .small { flex-basis: 100%; }
     .report-card .actions button { padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
       border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
     .report-card .small { color: #7f8fa6; font-size: 11px; }
@@ -195,8 +197,18 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
   const blocksBox = make('div');
   const actions = make('div', 'actions');
   const howBtn = make('button', '', 'How it is calculated');
+  const pdfBtn = make('button', 'pdf', 'Download PDF');
+  pdfBtn.title = 'Save this report (and the comparison of A / B / C, if any) as a PDF file';
   const noteSmall = make('span', 'small', '');
-  actions.append(howBtn, noteSmall);
+  actions.append(howBtn, pdfBtn, noteSmall);
+  pdfBtn.addEventListener('click', async () => {
+    if (!onPdf || pdfBtn.disabled) return;
+    pdfBtn.disabled = true;
+    pdfBtn.textContent = 'Preparing PDF…';
+    try { await onPdf(); } catch (error) { console.error(error); alert('Could not make the PDF: ' + error.message); }
+    pdfBtn.disabled = false;
+    pdfBtn.textContent = 'Download PDF';
+  });
   el.append(top, when, verdict, params, sizeRow, sizeNote, blocksBox, actions);
   addFold(el, top, [verdict]);   // «−» / «+»: в свёрнутом виде остаются координаты и светофор
   document.body.appendChild(el);
@@ -268,6 +280,7 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
     update,
     getAccuracy: () => Number(select.value),
     getLanderSize: () => sizeSelect.value,
+    getLanderLabel: () => LANDER_SIZES.find(s => s.key === sizeSelect.value).label,
     openHow,
   };
 }

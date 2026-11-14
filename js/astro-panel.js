@@ -11,6 +11,13 @@ const SUN_COLOR = '#f8f4e3';
 const EARTH_COLOR = '#7aa2ff';
 const CHART_DAYS = 30;
 
+// Цвета графика зависят от темы (в светлой теме кремовая линия Солнца была бы не видна)
+function chartColors() {
+  return document.documentElement.dataset.theme === 'light'
+    ? { sun: '#c77d00', earth: '#2f5fd0', text: '#566173', zero: 'rgba(0,0,0,0.45)', grid: 'rgba(0,0,0,0.12)' }
+    : { sun: SUN_COLOR, earth: EARTH_COLOR, text: '#7f8fa6', zero: 'rgba(255,255,255,0.45)', grid: 'rgba(255,255,255,0.12)' };
+}
+
 function make(tag, className, text) {
   const el = document.createElement(tag);
   if (className) el.className = className;
@@ -96,11 +103,15 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   const canvas = make('canvas');
   el.appendChild(canvas);
   const legend = make('div', 'legend');
-  for (const [name, color] of [['Sun elevation', SUN_COLOR], ['Earth elevation', EARTH_COLOR]]) {
-    const item = make('span', '', '● ' + name);
-    item.style.color = color;
-    legend.appendChild(item);
+  const sunLegend = make('span', '', '● Sun elevation');
+  const earthLegend = make('span', '', '● Earth elevation');
+  legend.append(sunLegend, earthLegend);
+  function paintLegend() {
+    const c = chartColors();
+    sunLegend.style.color = c.sun;
+    earthLegend.style.color = c.earth;
   }
+  paintLegend();
   el.appendChild(legend);
   const noteEl = make('div', 'note');
   el.appendChild(noteEl);
@@ -133,14 +144,15 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     const x = i => padL + ((series.timesMs[i] - t0) / (t1 - t0)) * (W - padL - padR);
     const y = e => padT + ((90 - e) / 180) * (H - padT - padB);
 
+    const colors = chartColors();
     ctx.font = '10px system-ui, sans-serif';
-    ctx.fillStyle = '#7f8fa6';
+    ctx.fillStyle = colors.text;
     ctx.lineWidth = 1;
     for (const e of [90, 0, -90]) {
       ctx.beginPath();
       ctx.moveTo(padL, y(e));
       ctx.lineTo(W - padR, y(e));
-      ctx.strokeStyle = e === 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)';
+      ctx.strokeStyle = e === 0 ? colors.zero : colors.grid;
       ctx.stroke();
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
@@ -164,8 +176,8 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
       });
       ctx.stroke();
     }
-    line(series.earth, EARTH_COLOR);
-    line(series.sun, SUN_COLOR);
+    line(series.earth, colors.earth);
+    line(series.sun, colors.sun);
   }
 
   // Две короткие строки вместо одной длинной: «через сколько» и «когда по времени Земли (UTC)»
@@ -211,6 +223,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   }
 
   render();
+  window.addEventListener('themechange', () => { paintLegend(); render(); });   // перекрасить график
 
   return {
     // Вызывается, когда выбрана точка на Луне

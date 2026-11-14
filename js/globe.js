@@ -262,7 +262,14 @@ const starMaterial = new THREE.PointsMaterial({
   size: 1.5,
   sizeAttenuation: false
 });
-scene.add(new THREE.Points(starGeometry, starMaterial));
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+// Тема (js/theme.js) меняет только панели: космос и звёзды всегда тёмные
+export function setSceneTheme() {
+  scene.background = null;
+  stars.visible = true;
+}
 
 // 9. ПОЛЁТ КАМЕРЫ К ТОЧКЕ (для карточки места)
 let flight = null;
