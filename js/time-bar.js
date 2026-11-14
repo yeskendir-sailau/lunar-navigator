@@ -1,6 +1,7 @@
 // Панель времени (вверху по центру): дата и время в UTC, кнопка Now и воспроизведение с ускорением.
 // Не зависит от three.js. Сообщает о времени через onTime(ms, isPlaying).
 import { inDataRange } from './astro.js';
+import { fmtUtc } from './format.js';
 
 const pad = n => String(n).padStart(2, '0');
 const toInputValue = ms => new Date(ms).toISOString().slice(0, 16);   // для <input type="datetime-local">
@@ -25,7 +26,7 @@ export function createTimeBar(eph, { onTime }) {
   style.textContent = `
     .time-bar {
       position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
-      display: flex; gap: 6px; align-items: center; padding: 8px 10px;
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 8px 10px; width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
       background: rgba(10, 14, 22, 0.92); color: #e8edf5;
       border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
       font: 13px/1.4 system-ui, sans-serif;
@@ -39,8 +40,10 @@ export function createTimeBar(eph, { onTime }) {
       border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
     }
     .time-bar .play { min-width: 58px; }
+    .time-bar .slider-row { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; color: #9fb0c8; font-size: 11px; }
+    .time-bar input[type=range] { flex: 1; min-width: 0; padding: 0; accent-color: #4cc9f0; }
     @media (max-width: 1100px) {
-      .time-bar { top: 76px; left: 16px; transform: none; flex-wrap: wrap; max-width: calc(100vw - 32px); }
+      .time-bar { top: 76px; left: 16px; transform: none; max-width: calc(100vw - 32px); }
     }
   `;
   document.head.appendChild(style);
@@ -61,7 +64,16 @@ export function createTimeBar(eph, { onTime }) {
     speed.appendChild(option);
   }
   speed.value = String(86400);
-  bar.append(make('span', '', 'UTC'), input, nowBtn, playBtn, speed);
+  // Ползунок даты: весь диапазон данных, шаг — час
+  const slider = make('input');
+  slider.type = 'range';
+  slider.min = '0';
+  slider.max = String(eph.count - 1);
+  slider.step = '1';
+  slider.setAttribute('aria-label', 'Date slider');
+  const sliderRow = make('div', 'slider-row');
+  sliderRow.append(make('span', '', fmtUtc(eph.startMs).slice(0, 10)), slider, make('span', '', fmtUtc(eph.endMs).slice(0, 10)));
+  bar.append(make('span', '', 'UTC'), input, nowBtn, playBtn, speed, sliderRow);
   document.body.appendChild(bar);
 
   let ms = inDataRange(eph, Date.now()) ? Date.now() : eph.startMs;
@@ -72,6 +84,7 @@ export function createTimeBar(eph, { onTime }) {
   function set(newMs) {
     ms = Math.min(Math.max(newMs, eph.startMs), eph.endMs);
     input.value = toInputValue(ms);
+    slider.value = String(Math.round((ms - eph.startMs) / eph.stepMs));
     onTime(ms, playing);
   }
 
@@ -103,6 +116,10 @@ export function createTimeBar(eph, { onTime }) {
   nowBtn.addEventListener('click', () => {
     if (playing) stop();
     set(inDataRange(eph, Date.now()) ? Date.now() : eph.startMs);
+  });
+  slider.addEventListener('input', () => {   // двигаем ползунок: свет и отчёт меняются сразу
+    if (playing) stop();
+    set(eph.startMs + Number(slider.value) * eph.stepMs);
   });
   input.addEventListener('change', () => {
     if (playing) stop();

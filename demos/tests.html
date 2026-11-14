@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lunar Navigator: tests</title>
+  <style>
+    body { font: 15px/1.5 system-ui, sans-serif; background: #0b1020; color: #e8edf5; margin: 24px; }
+    li { list-style: none; margin: 2px 0; } .ok::before { content: '✓ '; color: #2ecc71; } .bad::before { content: '✕ '; color: #e74c3c; }
+    small { color: #9fb0c8; } h1 { font-size: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Lunar Navigator: logic tests</h1>
+  <p id="summary">Running…</p>
+  <ul id="list"></ul>
+  <script type="module">
+    import { runTests } from '../tests/tests.js';
+    const get = async p => (await fetch(new URL(p, location.href))).json();
+    const results = runTests({ sites: await get('../data/sites.json'), th: await get('../data/thresholds.json') });
+    const list = document.getElementById('list');
+    for (const r of results) {
+      const li = document.createElement('li');
+      li.className = r.ok ? 'ok' : 'bad';
+      li.textContent = r.name;
+      if (r.detail) { const s = document.createElement('small'); s.textContent = `  (${r.detail})`; li.append(s); }
+      list.append(li);
+    }
+    const failed = results.filter(r => !r.ok).length;
+    document.getElementById('summary').textContent = failed ? `${failed} FAILED of ${results.length}` : `All ${results.length} tests passed`;
+    document.title = failed ? 'FAILED' : 'PASSED';
+  </script>
+</body>
+</html>

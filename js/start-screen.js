@@ -1,46 +1,63 @@
-// Модуль 8: главный экран с кнопкой «Start». Закрывает Луну полупрозрачной заставкой,
-// по нажатию плавно исчезает. Всё создаётся кодом.
-export function createStartScreen() {
+// Главный экран с кнопкой «Start» поверх Луны. Включается только на страницах с <body data-start>.
+function make(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text !== undefined) el.textContent = text;
+  return el;
+}
+
+export function createStartScreen({ onStart } = {}) {
   const style = document.createElement('style');
   style.textContent = `
     .start-screen {
-      position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
-      padding: 16px; box-sizing: border-box;
-      background: radial-gradient(ellipse at center, rgba(10,14,22,.75), rgba(3,5,10,.96));
-      color: #e8edf5; font: 16px/1.5 system-ui, sans-serif; transition: opacity .5s ease;
+      position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center;
+      background: radial-gradient(ellipse at center, rgba(5,8,14,.55) 0%, rgba(5,8,14,.93) 75%);
+      color: #e8edf5; font: 16px/1.55 system-ui, sans-serif; transition: opacity .6s ease;
     }
-    .start-screen.hide { opacity: 0; pointer-events: none; }
-    .start-screen .box { max-width: 560px; text-align: center; }
-    .start-screen h1 { font-size: clamp(26px, 5vw, 40px); margin: 0 0 8px; }
-    .start-screen .sub { color: #9fb0c8; margin: 0 0 20px; }
-    .start-screen ul { text-align: left; display: inline-block; margin: 0 0 24px; padding-left: 20px; }
-    .start-screen button {
-      font: 600 18px system-ui, sans-serif; padding: 10px 36px; cursor: pointer;
-      color: #0a0e16; background: #e8edf5; border: 0; border-radius: 999px;
-    }
-    .start-screen button:hover { background: #ffffff; }
+    .start-screen.leaving { opacity: 0; pointer-events: none; }
+    .start-screen .inner { max-width: 560px; }
+    .start-screen h1 { margin: 0 0 8px; font-size: clamp(30px, 6vw, 48px); letter-spacing: .02em; }
+    .start-screen p { margin: 0 0 12px; color: #c4cfe0; }
+    .start-screen .lights { display: inline-flex; gap: 10px; margin: 6px 0 18px; }
+    .start-screen .lights span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
+      border-radius: 999px; background: rgba(255,255,255,.08); font-size: 14px; }
+    .start-screen .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center;
+      color: #0b0f17; font-weight: 700; font-size: 12px; }
+    .start-screen button { padding: 12px 36px; font: 600 18px system-ui, sans-serif; color: #0b0f17;
+      background: #4cc9f0; border: 0; border-radius: 999px; cursor: pointer; }
+    .start-screen button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    .start-screen .small { margin-top: 18px; font-size: 12px; color: #7f8fa6; }
   `;
   document.head.appendChild(style);
 
-  const el = document.createElement('div');
-  el.className = 'start-screen';
-  el.innerHTML = `
-    <div class="box">
-      <h1>Lunar Landing Site Navigator</h1>
-      <p class="sub">Pick any point on the Moon and see if a lander could work there.</p>
-      <ul>
-        <li>⚡ <b>Energy</b> — how much sunlight the next 30 days bring</li>
-        <li>📡 <b>Communication</b> — how often Earth is in view for a radio link</li>
-        <li>🏛 <b>Neighbours</b> — whether historic or active hardware is too close</li>
-      </ul>
-      <div><button type="button">Start</button></div>
-    </div>`;
+  const el = make('div', 'start-screen');
+  const inner = make('div', 'inner');
+  inner.append(
+    make('h1', '', 'Lunar Navigator'),
+    make('p', '', 'Pick a spot on the Moon and a date. Get a traffic-light report: ' +
+      'is there enough sunlight, can you see Earth, and is it safe for the sites that are already there?'),
+  );
+  const lights = make('div', 'lights');
+  for (const [icon, word, color] of [['✓', 'Good', '#2ecc71'], ['!', 'Caution', '#f1c40f'], ['✕', 'Not recommended', '#e74c3c']]) {
+    const chip = make('span');
+    const dot = make('span', 'dot', icon);
+    dot.style.background = color;
+    chip.append(dot, document.createTextNode(word));
+    lights.appendChild(chip);
+  }
+  const start = make('button', '', 'Start');
+  start.type = 'button';
+  inner.append(lights, make('br'), start,
+    make('div', 'small', 'Data: NASA, JPL. Thresholds are our own choice and are explained inside. Not for real mission planning.'));
+  el.appendChild(inner);
   document.body.appendChild(el);
+  start.focus();
 
-  const button = el.querySelector('button');
-  button.focus();
-  button.addEventListener('click', () => {
-    el.classList.add('hide');
-    setTimeout(() => el.remove(), 600);
-  });
+  function go() {
+    el.classList.add('leaving');
+    setTimeout(() => el.remove(), 700);
+    onStart?.();
+  }
+  start.addEventListener('click', go);
+  return { close: go };
 }

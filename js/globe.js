@@ -46,7 +46,8 @@ scene.add(moon);
 const sun = new THREE.DirectionalLight(0xffffff, 3);
 sun.position.set(5, 2, 5);
 scene.add(sun);
-scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+const ambient = new THREE.AmbientLight(0xffffff, 0.15);
+scene.add(ambient);
 
 // Свет Земли («пепельный свет»): слабый голубоватый свет со стороны Земли,
 // чтобы ночная сторона Луны не была совсем чёрной
@@ -54,13 +55,75 @@ const earthshine = new THREE.DirectionalLight(0x9db4ff, 0.35);
 earthshine.position.set(5, 0, 0);
 scene.add(earthshine);
 
+// 7. СОЛНЦЕ И ЗЕМЛЯ В СЦЕНЕ
+// Направление на каждое тело настоящее (из sun_earth.json), а расстояние и размер условные:
+// настоящие не поместились бы на экране, поэтому рядом с телом подпись «not to scale».
+const SUN_DISTANCE = 7;
+const EARTH_DISTANCE = 5;
+
+function labelSprite(lines, color) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 128;
+  const g = canvas.getContext('2d');
+  g.textAlign = 'center';
+  g.fillStyle = color;
+  g.font = '600 44px system-ui, sans-serif';
+  g.fillText(lines[0], 256, 52);
+  g.fillStyle = '#c4cfe0';
+  g.font = '34px system-ui, sans-serif';
+  g.fillText(lines[1], 256, 100);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sprite.scale.set(1.6, 0.4, 1);
+  sprite.renderOrder = 10;
+  return sprite;
+}
+
+const sunMarker = new THREE.Group();
+sunMarker.add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffd34d })));
+const sunLabel = labelSprite(['Sun', 'direction exact, size not to scale'], '#ffd34d');
+sunLabel.position.set(0, 0.65, 0);
+sunMarker.add(sunLabel);
+sunMarker.visible = false;
+scene.add(sunMarker);
+
+const earthMarker = new THREE.Group();
+earthMarker.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), new THREE.MeshBasicMaterial({ color: 0x3d8bff })));
+const earthLabel = labelSprite(['Earth', 'direction exact, size not to scale'], '#7db4ff');
+earthLabel.position.set(0, 0.5, 0);
+earthMarker.add(earthLabel);
+earthMarker.visible = false;
+scene.add(earthMarker);
+
+let earthDir = null;   // последнее направление на Землю (оси three.js), единичный вектор
+
 // Направить Солнце и Землю по реальным данным.
 // Принимают направление в осях three.js: (x, y, z) = (X, Z, -Y) из системы Луны (см. geo.js).
 export function setSunDirection(x, y, z) {
   sun.position.set(x, y, z).multiplyScalar(5);
+  sunMarker.position.set(x, y, z).normalize().multiplyScalar(SUN_DISTANCE);
+  sunMarker.visible = true;
 }
 export function setEarthDirection(x, y, z) {
   earthshine.position.set(x, y, z).multiplyScalar(5);
+  earthDir = new THREE.Vector3(x, y, z).normalize();
+  earthMarker.position.copy(earthDir).multiplyScalar(EARTH_DISTANCE);
+  earthMarker.visible = true;
+}
+
+// Режим света: 'real' — только Солнце (видны фазы), 'full' — Луна освещена со всех сторон
+export function setLightMode(mode) {
+  if (mode === 'full') {
+    ambient.intensity = 1.6;
+    sun.intensity = 1.0;
+    earthshine.intensity = 0;
+  } else {
+    ambient.intensity = 0.15;
+    sun.intensity = 3;
+    earthshine.intensity = 0.35;
+  }
 }
 
 // 8. ЗВЁЗДЫ
@@ -88,9 +151,7 @@ function easeInOutCubic(u) {            // «разгон и торможени�
   return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
 }
 
-export function flyTo(lat, lon, distance = 2.2, seconds = 1.6) {
-  const safeLat = THREE.MathUtils.clamp(lat, -85, 85);   // у самого полюса камера путается
-  const targetDir = latLonToVector3(safeLat, lon, 1);
+function flyToDirection(targetDir, distance, seconds) {
   const startDir = camera.position.clone().normalize();
   flight = {
     startDir,
@@ -101,6 +162,21 @@ export function flyTo(lat, lon, distance = 2.2, seconds = 1.6) {
     duration: seconds * 1000,
   };
   controls.enabled = false;             // пока летим, мышка не мешает
+}
+
+export function flyTo(lat, lon, distance = 2.2, seconds = 1.6) {
+  const safeLat = THREE.MathUtils.clamp(lat, -85, 85);   // у самого полюса камера путается
+  flyToDirection(latLonToVector3(safeLat, lon, 1), distance, seconds);
+}
+
+// «Вид с Земли»: камера встаёт на линию Луна–Земля, и видна привычная нам фаза.
+// Вернёт false, если направление на Землю ещё не известно.
+export function viewFromEarth(distance = 3.4, seconds = 1.6) {
+  if (!earthDir) return false;
+  const dir = earthDir.clone();
+  dir.y = THREE.MathUtils.clamp(dir.y, -0.996, 0.996);   // у самого полюса камера путается
+  flyToDirection(dir.normalize(), distance, seconds);
+  return true;
 }
 
 function updateFlight() {

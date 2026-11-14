@@ -4,7 +4,6 @@
 // Не зависит от three.js. Всё создаётся кодом, поэтому в HTML ничего добавлять не нужно.
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
 import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
-import { findHorizon, bodyState, summarizeTerrain } from './horizon.js';
 
 const SUN_COLOR = '#f8f4e3';
 const EARTH_COLOR = '#7aa2ff';
@@ -18,7 +17,7 @@ function make(tag, className, text) {
 }
 
 // onPin(slot, lat, lon) вызывается кнопками «Set as A / B» (сравнение мест)
-export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
+export function createAstroPanel(eph, { onPin, getMask } = {}) {
   const style = document.createElement('style');
   style.textContent = `
     .astro-panel {
@@ -58,7 +57,7 @@ export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
   // Кнопки сравнения: запомнить эту точку как место A или B
   const pinRow = make('div', 'pins');
   pinRow.appendChild(make('span', '', 'Compare:'));
-  for (const slot of ['A', 'B']) {
+  for (const slot of ['A', 'B', 'C']) {
     const button = make('button', '', `Set as ${slot}`);
     button.addEventListener('click', () => {
       if (lat !== null) onPin?.(slot, lat, lon);
@@ -82,17 +81,7 @@ export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
   const earthRow = row('Earth');
   const earthEventRow = row('Earthrise / Earthset');
   const linkRow = row('Direct link to Earth');
-  // Строки про горы: показываем, только если для этой точки посчитана маска горизонта
-  const terrainRows = [
-    row('Sun above terrain'),
-    row('Earth above terrain'),
-    row('Sunlit, next 30 d'),
-    row('Earth link, next 30 d'),
-  ];
-  for (const r of terrainRows) { r.dt.style.color = '#ffd166'; }
   el.appendChild(list);
-  const terrainNote = make('p', 'status');
-  el.appendChild(terrainNote);
 
   const canvas = make('canvas');
   el.appendChild(canvas);
@@ -103,14 +92,14 @@ export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
     legend.appendChild(item);
   }
   el.appendChild(legend);
-  el.appendChild(make('div', 'note',
-    `Next ${CHART_DAYS} days from the chosen time. The numbers and the graph assume a flat horizon; ` +
-    'the yellow "terrain" rows (where shown) take mountains and crater walls into account.'));
+  const noteEl = make('div', 'note');
+  el.appendChild(noteEl);
   document.body.appendChild(el);
 
   // --- Состояние ---
   let lat = null;
   let lon = null;
+  let mask = null;   // маска горизонта (рельеф) для этой точки или null: ровный горизонт
   let ms = inDataRange(eph, Date.now()) ? Date.now() : eph.startMs;
 
   function drawChart(series) {
@@ -175,15 +164,17 @@ export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
   }
 
   function render() {
+    mask = lat === null ? null : (getMask?.(lat, lon) ?? null);
+    noteEl.textContent = `Next ${CHART_DAYS} days from the chosen time. ` + (mask
+      ? 'Sunrise, sunset and visibility use the terrain horizon; the chart shows the plain 0° line.'
+      : 'Flat horizon, no terrain: mountains and crater walls can shorten daylight and block the view of Earth.');
     timeLine.textContent = Number.isFinite(ms) ? `Time: ${fmtUtc(ms)}` : '';
     if (lat === null) return;
-    const c = Number.isFinite(ms) ? conditionsAt(eph, lat, lon, ms) : null;
+    const c = Number.isFinite(ms) ? conditionsAt(eph, lat, lon, ms, mask) : null;
     if (!c) {
       status.textContent = `No data for this time. Data covers ${fmtUtc(eph.startMs)} – ${fmtUtc(eph.endMs)}.`;
       for (const r of [sunRow, sunEventRow, earthRow, earthEventRow, linkRow]) r.dd.textContent = '–';
       drawChart({ timesMs: [] });
-      for (const r of terrainRows) { r.dt.hidden = true; r.dd.hidden = true; }
-      terrainNote.textContent = '';
       return;
     }
     status.textContent = '';
@@ -192,38 +183,15 @@ export function createAstroPanel(eph, { onPin, horizons = null } = {}) {
     earthRow.dd.textContent = `${fmtDeg(c.earthElevation)} · ${c.earthUp ? 'above horizon' : 'below horizon'}`;
     linkRow.dd.textContent = c.earthUp ? 'Yes' : 'No (Earth below horizon)';
 
-    const sunX = nextCrossing(eph, 'sun', lat, lon, ms);
+    const sunX = nextCrossing(eph, 'sun', lat, lon, ms, undefined, undefined, mask);
     sunEventRow.dt.textContent = sunX ? (sunX.rising ? 'Next sunrise' : 'Next sunset') : 'Sunrise / sunset';
     sunEventRow.dd.textContent = eventText(sunX, ms);
 
-    const earthX = nextCrossing(eph, 'earth', lat, lon, ms);
+    const earthX = nextCrossing(eph, 'earth', lat, lon, ms, undefined, undefined, mask);
     earthEventRow.dt.textContent = earthX ? (earthX.rising ? 'Next Earthrise' : 'Next Earthset') : 'Earthrise / Earthset';
     earthEventRow.dd.textContent = eventText(earthX, ms);
 
     drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
-    renderTerrain();
-  }
-
-  // Горы (маска горизонта из LOLA). Для точек без маски строки скрыты.
-  function renderTerrain() {
-    const place = findHorizon(horizons, lat, lon);
-    for (const r of terrainRows) { r.dt.hidden = !place; r.dd.hidden = !place; }
-    if (!place) {
-      terrainNote.textContent = horizons
-        ? 'Terrain: no horizon mask for this point (computed only for a few places near the south pole).'
-        : '';
-      return;
-    }
-    terrainNote.textContent = `Terrain: horizon mask for ${place.name} (LOLA, 80 m per pixel).`;
-    const fmtState = s => (s
-      ? `${s.visible ? 'Yes' : 'No'} · ${fmtDeg(s.elevation)} vs mountains ${fmtDeg(s.mask)} at ${s.azimuth.toFixed(0)}°`
-      : '–');
-    terrainRows[0].dd.textContent = fmtState(bodyState(eph, place, 'sun', ms));
-    terrainRows[1].dd.textContent = fmtState(bodyState(eph, place, 'earth', ms));
-    const sum = summarizeTerrain(eph, place, ms, CHART_DAYS);
-    const pct = v => (v === null ? '–' : `${v.toFixed(0)} %`);
-    terrainRows[2].dd.textContent = `${pct(sum.sunTerrainPct)} (flat: ${pct(sum.sunFlatPct)})`;
-    terrainRows[3].dd.textContent = `${pct(sum.earthTerrainPct)} (flat: ${pct(sum.earthFlatPct)})`;
   }
 
   render();

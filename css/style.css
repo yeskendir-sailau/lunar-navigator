@@ -1,0 +1,85 @@
+/* Общее оформление Lunar Navigator: фон, шрифты, расположение панелей поверх космоса.
+   Каждая панель в js/ добавляет свои стили сама; здесь — общие правила и раскладка (специфичность
+   выше, поэтому эти правила главнее). Цвета светофора: зелёный #2ecc71, жёлтый #f1c40f, красный #e74c3c. */
+
+:root {
+  --bg: #05070c;
+  --panel: rgba(10, 14, 22, 0.88);
+  --panel-line: rgba(255, 255, 255, 0.18);
+  --text: #e8edf5;
+  --muted: #9fb0c8;
+  --accent: #4cc9f0;
+  --good: #2ecc71;
+  --caution: #f1c40f;
+  --bad: #e74c3c;
+}
+
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+canvas { display: block; }
+
+/* Полупрозрачные панели: видно космос за ними */
+body .report-card, body .astro-panel, body .time-bar, body .coords-box, body .view-controls, body .site-card {
+  background: var(--panel);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  border-color: var(--panel-line);
+  scrollbar-width: thin;
+}
+
+/* Видимый фокус для клавиатуры */
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Раскладка (широкий экран): слева отчёт, справа Sun & Earth, внизу карточка места и кнопки вида */
+@media (min-width: 1101px) {
+  body .site-card { left: 372px; bottom: 16px; width: min(360px, calc(100vw - 760px)); }
+  body .report-card { max-height: calc(100vh - 92px); }
+  body .astro-panel { max-height: calc(100vh - 96px - 130px); }
+}
+
+/* Сравнение мест: окно посередине, закрывается крестиком */
+.compare {
+  position: fixed; top: 50%; left: 50%; z-index: 40; transform: translate(-50%, -48%);
+  width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box;
+  padding: 10px 14px 12px; background: rgba(10, 14, 22, 0.96); color: var(--text);
+  border: 1px solid var(--panel-line); border-radius: 12px; font: 13px/1.45 system-ui, sans-serif;
+  opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s ease;
+}
+.compare.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.compare-head { display: flex; align-items: center; justify-content: space-between; }
+.compare h3 { margin: 0 0 6px; font-size: 16px; }
+.compare-close, .compare .clear {
+  color: var(--text); background: #1d2740; cursor: pointer; font: inherit;
+  border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 2px 8px;
+}
+.compare table { width: 100%; border-collapse: collapse; }
+.compare th, .compare td { padding: 4px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.08); }
+.compare thead th, .compare tr:first-child th { color: var(--muted); font-weight: 600; }
+.compare tbody th, .compare tr th:first-child { color: var(--muted); font-weight: 400; white-space: nowrap; }
+.compare .slot { font-weight: 600; color: var(--text); }
+.compare .clear { padding: 0 6px; font-size: 11px; margin-top: 2px; }
+.compare tr.status-row td { font-weight: 700; }
+.compare td.best { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; background: rgba(76,201,240,.08); }
+.compare .best-tag { color: var(--accent); font-size: 11px; font-weight: 600; }
+.compare-note { margin-top: 8px; color: #7f8fa6; font-size: 11px; }
+
+/* Узкий экран (телефон): панели сверху вниз, всё прокручивается внутри панелей */
+@media (max-width: 1100px) {
+  body .report-card { top: auto; bottom: 16px; left: 16px; right: 16px; width: auto; max-height: 45vh; }
+  body .site-card { left: 16px; right: 16px; bottom: auto; top: 128px; width: auto; max-height: 35vh; }
+  body .astro-panel { top: 176px; right: 16px; left: auto; width: min(320px, calc(100vw - 32px)); max-height: 30vh; }
+}
+/* Телефон: остаются поле ввода, дата, отчёт и кнопки вида; график Sun & Earth, карточка места и сравнение
+   нужны широкого экрана (на телефоне места видны в отчёте) */
+@media (max-width: 700px) {
+  body .astro-panel, body .site-card { display: none; }
+  body .view-controls { top: auto; bottom: calc(45vh + 28px); right: 16px; left: 16px; width: auto; box-sizing: border-box; }
+  body .view-controls .note { display: none; }
+  body .time-bar { top: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
