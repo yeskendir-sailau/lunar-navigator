@@ -1,19 +1,35 @@
 {
-  "about": "Colour rules of this prototype. The percentages are our team's own choice, not official limits. The keep-out radii follow NASA's 2011 recommendations for U.S. heritage sites (Section A1-3: 2.0 km around lander sites, 0.5 km around impact sites); applying them to every landed or impact site and scaling them by lander class is our own choice.",
+  "_note": "All thresholds for the traffic-light report live here. Numbers marked NASA come from NASA's 2011 non-binding recommendations (NASA-USG Lunar Historic Sites, Rev A). All other numbers are our team's own choices and are explained on the site under 'How it is calculated'.",
+
   "energy": {
-    "label": "share of the next 30 days in sunlight",
-    "good_min": 60,
-    "caution_min": 40
+    "_note": "Our choices, not a standard. 14 days is about one lunar day of sunlight, the usual life of a solar-powered lander, so the colour changes with the landing date. The Sun counts only when it is higher than sun_min_elevation_deg: with a very low Sun the shadows are long and the panels collect little. (A 30-day window always covers a whole lunar cycle, so every place came out about 50% sunlit and the check could not tell dates apart.)",
+    "window_days": 14,
+    "sun_min_elevation_deg": 5,
+    "daylight_pct": { "green_min": 70, "yellow_min": 30 },
+    "longest_night_hours": { "green_max": 72, "yellow_max": 240 }
   },
-  "comm": {
-    "label": "share of the next 30 days with Earth above the horizon (direct link)",
-    "good_min": 80,
-    "caution_min": 40
+
+  "communication": {
+    "_note": "Our choices, not a standard. Same 14-day window as the energy check. Earth counts when it is above the horizon.",
+    "window_days": 14,
+    "earth_visible_pct": { "green_min": 80, "yellow_min": 40 },
+    "longest_gap_hours": { "green_max": 72, "yellow_max": 240 }
   },
-  "neighbours": {
-    "keepout_km": { "heritage": 2.0, "landed": 2.0, "impact": 0.5 },
-    "class_factor": { "small": 1, "medium": 1.5, "large": 3 },
-    "caution_factor": 2,
-    "source": "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf"
+
+  "neighbors": {
+    "moon_radius_km": 1737.4,
+    "default_accuracy_1sigma_m": 100,
+    "sigma_multiple": 3,
+    "keep_out_km": {
+      "_note": "NASA 2011: 2.0 km around lander sites, 0.5 km around impact sites, or 3 sigma of landing uncertainty, whichever is greater. NASA's text covers US sites; we apply the same distances to every site in the list as a precaution (our choice).",
+      "heritage": 2.0,
+      "landed": 2.0,
+      "impact": 0.5
+    },
+    "gravel_km": 1.5,
+    "dust_line_of_sight_km": 3.6,
+    "_dust_note": "NASA 2011: rocks thrown by the Apollo landers reached up to 1.5 km, and the lunar horizon is about 1.8 km from any point. Dust is not given a distance by NASA; we flag neighbours within twice the horizon distance (2 x 1.8 km = 3.6 km) as 'may be in line of sight on a smooth Moon' (our approximation, no terrain).",
+    "terrain_shield_min_deg": 2,
+    "_terrain_note": "Only when data/horizons.json has a terrain profile for the point. If the terrain in the direction of a neighbour rises at least this many degrees above the horizontal, we treat gravel and dust risk from that neighbour as shielded (one step lower). This is a rough approximation: the profile tells how high the terrain is, not how far away. The NASA keep-out distance is never lowered by terrain."
   }
 }

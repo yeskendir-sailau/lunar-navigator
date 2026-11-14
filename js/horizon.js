@@ -1,86 +1,74 @@
-// Модуль «горы на горизонте»: читает data/horizons.json (его делает tools/make_horizons.py)
-// и отвечает, видно ли Солнце или Землю НАД горами, а не только над ровным горизонтом.
-// Не зависит от three.js.
-import { directionAt, elevationDeg, azimuthDeg } from './astro.js';
+// Модуль horizon.js: маска горизонта (рельеф) для мест из списка. Не зависит от three.js.
+// Файл data/horizons.json готовится отдельным шагом из данных LOLA (высоты рельефа). Если файла нет,
+// сайт работает как раньше: горизонт считается ровным, и об этом честно написано в отчёте.
+//
+// Формат data/horizons.json:
+// {
+//   "format": 1,
+//   "azimuth_step_deg": 5,                       // шаг по азимуту; значений ровно 360 / шаг
+//   "points": [
+//     { "id": "apollo11", "lat": 0.67408, "lon": 23.47297,
+//       "elevation_deg": [0.2, 0.3, ...] }       // высота рельефа над горизонтом: азимут 0° (север), 5°, 10°, ... по часовой
+//   ]
+// }
 
-// Ровная местность при высоте глаза 2 м: кривизна Луны опускает горизонт на ~0.087°.
-export const FLAT_DEG = -0.087;
-const MOON_KM = 1737.4;
+const DEG = Math.PI / 180;
 
-// Загружает маски. Нет файла или он испорчен — вернёт null, и сайт работает как раньше.
+// Угловое расстояние между двумя точками, градусы (для поиска ближайшего места из списка)
+function angleDeg(lat1, lon1, lat2, lon2) {
+  const a = Math.sin(((lat2 - lat1) * DEG) / 2) ** 2 +
+            Math.cos(lat1 * DEG) * Math.cos(lat2 * DEG) * Math.sin(((lon2 - lon1) * DEG) / 2) ** 2;
+  return (2 * Math.asin(Math.min(1, Math.sqrt(a)))) / DEG;
+}
+
+// Проверяет и готовит данные; бросает Error с понятным текстом, если формат не тот
+export function parseHorizons(data) {
+  if (!data || !Array.isArray(data.points) || !(data.azimuth_step_deg > 0)) {
+    throw new Error('horizons.json: expected { azimuth_step_deg, points: [...] }');
+  }
+  const step = data.azimuth_step_deg;
+  const expected = Math.round(360 / step);
+  const points = [];
+  for (const p of data.points) {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lon) || !Array.isArray(p.elevation_deg) ||
+        p.elevation_deg.length !== expected || !p.elevation_deg.every(Number.isFinite)) {
+      throw new Error(`horizons.json: bad point "${p.id ?? '?'}" (needs lat, lon and ${expected} elevation values)`);
+    }
+    points.push({ id: p.id ?? null, lat: p.lat, lon: p.lon, mask: { stepDeg: step, values: p.elevation_deg } });
+  }
+  return { stepDeg: step, points };
+}
+
+// Загружает horizons.json. Нет файла или он испорчен -> null (сайт продолжает работать с ровным горизонтом)
 export async function loadHorizons(url) {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
-    const d = await response.json();
-    const places = (d.places ?? []).filter(p =>
-      Number.isFinite(p.lat) && Number.isFinite(p.lon) && Array.isArray(p.mask) && p.mask.length === 360);
-    return places.length ? { meta: d.meta ?? {}, places } : null;
+    const parsed = parseHorizons(await response.json());
+    return parsed.points.length ? parsed : null;   // файл есть, но мест в нём нет: считаем, что рельефа нет
   } catch (error) {
-    console.warn('horizons.json not loaded:', error);
+    console.warn('Terrain horizon data not used:', error.message);
     return null;
   }
 }
 
-// Расстояние между двумя точками на поверхности Луны, км
-function distanceKm(lat1, lon1, lat2, lon2) {
-  const r = Math.PI / 180;
-  const a = Math.sin(((lat2 - lat1) * r) / 2) ** 2 +
-            Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2;
-  return 2 * MOON_KM * Math.asin(Math.min(1, Math.sqrt(a)));
-}
-
-// Место с маской рядом с выбранной точкой (по умолчанию — не дальше 3 км) или null
-export function findHorizon(hz, lat, lon, maxKm = 3) {
-  if (!hz) return null;
+// Маска для точки (lat, lon): ближайшее место из списка не дальше tolDeg градусов, иначе null (ровный горизонт)
+export function horizonFor(horizons, lat, lon, tolDeg = 0.05) {
+  if (!horizons) return null;
   let best = null;
-  let bestKm = maxKm;
-  for (const p of hz.places) {
-    const km = distanceKm(lat, lon, p.lat, p.lon);
-    if (km <= bestKm) { best = p; bestKm = km; }
+  for (const p of horizons.points) {
+    const d = angleDeg(lat, lon, p.lat, p.lon);
+    if (d <= tolDeg && (best === null || d < best.d)) best = { d, mask: p.mask };
   }
-  return best;
+  return best ? best.mask : null;
 }
 
-// Высота гор (градусы) в направлении az: между соседними градусами — плавно
-export function maskAt(place, az) {
-  const i = Math.floor(az) % 360;
-  const j = (i + 1) % 360;
-  const f = az - Math.floor(az);
-  const a = place.mask[i] ?? FLAT_DEG;
-  const b = place.mask[j] ?? FLAT_DEG;
-  return a + (b - a) * f;
-}
-
-// Состояние тела ('sun' или 'earth') в момент ms: высота, азимут, высота гор, видно ли над горами
-export function bodyState(eph, place, body, ms) {
-  const dir = directionAt(eph, body, ms);
-  if (!dir) return null;
-  const el = elevationDeg(dir, place.lat, place.lon);
-  const az = azimuthDeg(dir, place.lat, place.lon);
-  const mask = maskAt(place, az);
-  return { elevation: el, azimuth: az, mask, visible: el > mask, flatVisible: el > FLAT_DEG };
-}
-
-// Сводка на `days` суток вперёд: доля времени, когда тело видно над горами, и для сравнения — над ровной местностью
-export function summarizeTerrain(eph, place, fromMs, days = 30, stepMin = 60) {
-  const out = { sun: { n: 0, flat: 0, terrain: 0 }, earth: { n: 0, flat: 0, terrain: 0 } };
-  const endMs = Math.min(fromMs + days * 864e5, eph.endMs);
-  for (let t = fromMs; t <= endMs; t += stepMin * 60e3) {
-    for (const body of ['sun', 'earth']) {
-      const s = bodyState(eph, place, body, t);
-      if (!s) continue;
-      const c = out[body];
-      c.n++;
-      if (s.flatVisible) c.flat++;
-      if (s.visible) c.terrain++;
-    }
-  }
-  const pct = (a, n) => (n ? (100 * a) / n : null);
-  return {
-    sunFlatPct: pct(out.sun.flat, out.sun.n),
-    sunTerrainPct: pct(out.sun.terrain, out.sun.n),
-    earthFlatPct: pct(out.earth.flat, out.earth.n),
-    earthTerrainPct: pct(out.earth.terrain, out.earth.n),
-  };
+// Высота рельефа (градусы) в направлении азимута azDeg: линейная интерполяция по кругу
+export function maskElevationAt(mask, azDeg) {
+  const n = mask.values.length;
+  const x = ((((azDeg % 360) + 360) % 360) / mask.stepDeg);
+  const i = Math.floor(x) % n;
+  const j = (i + 1) % n;
+  const w = x - Math.floor(x);
+  return mask.values[i] * (1 - w) + mask.values[j] * w;
 }

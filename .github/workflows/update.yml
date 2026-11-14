@@ -1,0 +1,39 @@
+# Once a day: check whether the source pages changed. If yes, open an issue "Check what's new in the sources".
+# It never edits the map (data/sites.json). It only saves data/source_hashes.json, the memory of what the pages looked like.
+name: Check sources
+
+on:
+  schedule:
+    - cron: "0 6 * * *"     # every day at 06:00 UTC
+  workflow_dispatch:         # also lets you press "Run workflow" by hand (Actions tab)
+
+permissions:
+  contents: write            # to save data/source_hashes.json
+  issues: write              # to open the issue
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/check_sources.py --create-issue
+
+      - name: Save the new hashes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/source_hashes.json
+          if git diff --cached --quiet; then
+            echo "Nothing to save."
+          else
+            git commit -m "Update source hashes"
+            git push
+          fi

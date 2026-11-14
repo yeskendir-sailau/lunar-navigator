@@ -9,6 +9,10 @@
 //
 // Допущения (честно): горизонт ровный (гор и кратеров нет), атмосферы нет (рефракции нет),
 // высота считается для центра диска Солнца или Земли.
+// Если для точки есть маска горизонта из data/horizons.json (см. horizon.js), тело считается
+// «над горизонтом», только когда оно выше рельефа в своём направлении (азимуте).
+
+import { maskElevationAt } from './horizon.js';
 
 const DEG = Math.PI / 180;
 const HOUR_MS = 3600e3;
@@ -67,37 +71,60 @@ export function elevationDeg(dir, latDeg, lonDeg) {
   return Math.asin(Math.max(-1, Math.min(1, s))) / DEG;
 }
 
+// Азимут направления dir в точке (lat, lon): градусы по часовой от севера (восток = 90°)
+export function azimuthDeg(dir, latDeg, lonDeg) {
+  const la = latDeg * DEG;
+  const lo = lonDeg * DEG;
+  const east = -dir[0] * Math.sin(lo) + dir[1] * Math.cos(lo);
+  const north = -dir[0] * Math.sin(la) * Math.cos(lo) - dir[1] * Math.sin(la) * Math.sin(lo) + dir[2] * Math.cos(la);
+  const az = Math.atan2(east, north) / DEG;
+  return az < 0 ? az + 360 : az;
+}
+
+// «Запас» над горизонтом: высота тела минус предел (градусы). Больше нуля = тело считается видимым.
+// Предел = больший из minElevation (например, «Солнце полезно от 5°») и высоты рельефа из маски.
+function marginDeg(dir, lat, lon, minElevation, mask) {
+  let limit = minElevation;
+  if (mask) limit = Math.max(limit, maskElevationAt(mask, azimuthDeg(dir, lat, lon)));
+  return elevationDeg(dir, lat, lon) - limit;
+}
+
 // body: 'sun' или 'earth'. Вернёт null, если для этого момента нет данных.
 export function bodyElevation(eph, body, lat, lon, ms) {
   const dir = directionAt(eph, body, ms);
   return dir ? elevationDeg(dir, lat, lon) : null;
 }
 
-// Все условия в точке и в момент ms
-export function conditionsAt(eph, lat, lon, ms) {
-  const sun = bodyElevation(eph, 'sun', lat, lon, ms);
-  const earth = bodyElevation(eph, 'earth', lat, lon, ms);
-  if (sun === null || earth === null) return null;
+// Все условия в точке и в момент ms. mask — маска горизонта точки (или null: ровный горизонт)
+export function conditionsAt(eph, lat, lon, ms, mask = null) {
+  const sunDir = directionAt(eph, 'sun', ms);
+  const earthDir = directionAt(eph, 'earth', ms);
+  if (!sunDir || !earthDir) return null;
   return {
-    sunElevation: sun,
-    earthElevation: earth,
-    sunUp: sun > 0,
-    earthUp: earth > 0,   // Земля над горизонтом = есть прямая видимость для связи
+    sunElevation: elevationDeg(sunDir, lat, lon),
+    earthElevation: elevationDeg(earthDir, lat, lon),
+    sunUp: marginDeg(sunDir, lat, lon, 0, mask) > 0,
+    earthUp: marginDeg(earthDir, lat, lon, 0, mask) > 0,   // Земля над горизонтом = есть прямая видимость для связи
+    terrain: Boolean(mask),
   };
 }
 
 // Ближайший момент, когда тело пересекает горизонт (восход или заход).
 // Вернёт { timeMs, rising } или null, если в ближайшие maxHours часов (в пределах данных) этого нет.
-export function nextCrossing(eph, body, lat, lon, fromMs, maxHours = 24 * 31, stepMin = 30) {
+export function nextCrossing(eph, body, lat, lon, fromMs, maxHours = 24 * 31, stepMin = 30, mask = null) {
   const stepMs = stepMin * 60e3;
   const endMs = Math.min(fromMs + maxHours * HOUR_MS, eph.endMs);
+  const margin = ms => {
+    const dir = directionAt(eph, body, ms);
+    return dir ? marginDeg(dir, lat, lon, 0, mask) : null;
+  };
   let t0 = fromMs;
-  let e0 = bodyElevation(eph, body, lat, lon, t0);
+  let e0 = margin(t0);
   if (e0 === null) return null;
 
   while (t0 < endMs) {
     const t1 = Math.min(t0 + stepMs, endMs);
-    const e1 = bodyElevation(eph, body, lat, lon, t1);
+    const e1 = margin(t1);
     if (e1 === null) return null;
     if ((e0 > 0) !== (e1 > 0)) {
       // Горизонт пересечён между t0 и t1: уточняем делением пополам
@@ -105,7 +132,7 @@ export function nextCrossing(eph, body, lat, lon, fromMs, maxHours = 24 * 31, st
       let hi = t1;
       for (let k = 0; k < 20; k++) {
         const mid = (lo + hi) / 2;
-        const em = bodyElevation(eph, body, lat, lon, mid);
+        const em = margin(mid);
         if ((em > 0) === (e0 > 0)) lo = mid; else hi = mid;
       }
       return { timeMs: hi, rising: e1 > 0 };
@@ -116,35 +143,38 @@ export function nextCrossing(eph, body, lat, lon, fromMs, maxHours = 24 * 31, st
   return null;
 }
 
-// Сводка по ближайшим `days` суткам от момента fromMs: доля светлого времени, самая длинная ночь,
-// доля времени с видимой Землёй, самый долгий перерыв без неё. Всё считается на ровном горизонте.
+// Сводка по ближайшим `days` суткам от момента fromMs: доля времени с «полезным» Солнцем, самая длинная
+// «ночь», доля времени с видимой Землёй, самый долгий перерыв без неё.
+// opts.sunMinElevation / earthMinElevation (градусы, по умолчанию 0): ниже этой высоты тело не считаем.
+// opts.mask: маска горизонта точки (рельеф) или null: ровный горизонт.
 // «Самая длинная ночь» считается внутри окна: если ночь уже идёт, учитывается только её остаток.
-export function summarize(eph, lat, lon, fromMs, days = 30, stepMin = 60) {
-  const s = elevationSeries(eph, lat, lon, fromMs, days * 24, stepMin);
-  const stepH = stepMin / 60;
-
-  function stats(values) {
-    let up = 0;
-    let total = 0;
-    let run = 0;
-    let longestDown = 0;
-    for (const v of values) {
-      if (v === null) continue;
-      total++;
-      if (v > 0) { up++; run = 0; } else { run++; if (run > longestDown) longestDown = run; }
+export function summarize(eph, lat, lon, fromMs, days = 30, stepMin = 60, opts = {}) {
+  const { sunMinElevation = 0, earthMinElevation = 0, mask = null } = opts;
+  const stepMs = stepMin * 60e3;
+  const endMs = Math.min(fromMs + days * 24 * HOUR_MS, eph.endMs);
+  const acc = {
+    sun: { up: 0, total: 0, run: 0, longest: 0, min: sunMinElevation },
+    earth: { up: 0, total: 0, run: 0, longest: 0, min: earthMinElevation },
+  };
+  for (let t = fromMs; t <= endMs; t += stepMs) {
+    for (const body of ['sun', 'earth']) {
+      const dir = directionAt(eph, body, t);
+      if (!dir) continue;
+      const a = acc[body];
+      a.total++;
+      if (marginDeg(dir, lat, lon, a.min, mask) > 0) { a.up++; a.run = 0; }
+      else { a.run++; if (a.run > a.longest) a.longest = a.run; }
     }
-    return { total, upPct: total ? (100 * up) / total : 0, longestDownHours: longestDown * stepH };
   }
-
-  const sun = stats(s.sun);
-  const earth = stats(s.earth);
-  if (sun.total === 0) return null;
+  if (acc.sun.total === 0 || acc.earth.total === 0) return null;
+  const stepH = stepMin / 60;
   return {
-    windowHours: sun.total * stepH,
-    daylightPct: sun.upPct,
-    longestNightHours: sun.longestDownHours,
-    earthVisiblePct: earth.upPct,
-    longestEarthGapHours: earth.longestDownHours,
+    windowHours: acc.sun.total * stepH,
+    daylightPct: (100 * acc.sun.up) / acc.sun.total,
+    longestNightHours: acc.sun.longest * stepH,
+    earthVisiblePct: (100 * acc.earth.up) / acc.earth.total,
+    longestEarthGapHours: acc.earth.longest * stepH,
+    terrain: Boolean(mask),
   };
 }
 
@@ -159,15 +189,4 @@ export function elevationSeries(eph, lat, lon, fromMs, hours, stepMin = 60) {
     out.earth.push(bodyElevation(eph, 'earth', lat, lon, t));
   }
   return out;
-}
-
-// Азимут тела (градусы, от севера по часовой стрелке)
-export function azimuthDeg(dir, latDeg, lonDeg) {
-  const la = latDeg * DEG;
-  const lo = lonDeg * DEG;
-  const east = [-Math.sin(lo), Math.cos(lo), 0];
-  const north = [-Math.sin(la) * Math.cos(lo), -Math.sin(la) * Math.sin(lo), Math.cos(la)];
-  const e = dir[0] * east[0] + dir[1] * east[1] + dir[2] * east[2];
-  const n = dir[0] * north[0] + dir[1] * north[1] + dir[2] * north[2];
-  return ((Math.atan2(e, n) / DEG) + 360) % 360;
 }

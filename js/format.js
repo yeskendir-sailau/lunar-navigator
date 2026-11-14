@@ -29,5 +29,12 @@ export function fmtHours(hours) {
   return d > 0 ? `${d} d ${h} h` : `${h} h`;
 }
 
+// Расстояние в километрах -> «156 m», «2.4 km», «35 km»
+export function fmtDistance(km) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  if (km < 10) return `${km.toFixed(1)} km`;
+  return `${Math.round(km)} km`;
+}
+
 // Градусы со знаком: +12.3° / −5.0°
 export const fmtDeg = v => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(1)}°`;
