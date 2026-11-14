@@ -40,6 +40,8 @@ It needs internet for one thing only: three.js is loaded from a CDN.
 | Landing and impact sites | NASA NSSDC lists of lunar sites and artifact impacts; NASA 2011 document | `data/sites.json` (coordinates, dates, source link for every site) |
 | Rules for neighbours | NASA, *NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts* (2011, Rev. A) | Keep-out distances, gravel distance, horizon distance |
 | Moon texture | NASA Scientific Visualization Studio, CGI Moon Kit _(team: confirm that `textures/moon_4k.jpg` comes from there and add the link)_ | The picture on the 3D Moon |
+| Earth 3D model | `models/earth.glb` (textures reduced to 2048 px). _Team: add the author, the page you downloaded it from and the licence._ | Earth in the scene |
+| Sun surface texture | `textures/sun.jpg` from the Sun model archive. _Team: add the author, the page you downloaded it from and the licence._ | Sun in the scene |
 | 3D | three.js (MIT licence) | Drawing the Moon |
 
 NASA 2011 numbers we use (checked against the document): stay at least 2.0 km from a lander site (0.5 km from an impact site) or 3σ of the landing error, whichever is larger; rocks thrown by the Apollo landers reached up to 1.5 km; the lunar horizon is about 1.8 km away. The document is a **non-binding recommendation written for US government artifacts**. We apply the same distances to all sites as a precaution, which is our choice.

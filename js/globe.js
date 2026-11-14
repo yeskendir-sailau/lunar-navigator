@@ -38,7 +38,16 @@ const texture = new THREE.TextureLoader().load(fileUrl('../textures/moon_4k.jpg'
 texture.colorSpace = THREE.SRGBColorSpace;
 
 const geometry = new THREE.SphereGeometry(1, 64, 64);
-const material = new THREE.MeshStandardMaterial({ map: texture });
+0// Лёгкий рельеф: та же текстура используется как карта высот, чтобы кратеры и борозды чуть «выступали» на свету.
+// Если рельеф кажется слишком сильным или слабым, поменяйте MOON_RELIEF (0 = выключить).
+const MOON_RELIEF = 0.03;
+const material = new THREE.MeshStandardMaterial({
+  map: texture,
+  bumpMap: MOON_RELIEF > 0 ? texture : null,
+  bumpScale: MOON_RELIEF,
+  roughness: 1,
+  metalness: 0,
+});
 const moon = new THREE.Mesh(geometry, material);
 scene.add(moon);
 
@@ -81,21 +90,132 @@ function labelSprite(lines, color) {
   return sprite;
 }
 
+// Мягкое свечение: круглый спрайт с радиальным градиентом и сложением цветов (additive)
+function glowSprite(stops, size) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 256;
+  const g = canvas.getContext('2d');
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  for (const [at, color] of stops) grad.addColorStop(at, color);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  }));
+  sprite.scale.set(size, size, 1);
+  return sprite;
+}
+
+// Земля: тёмно-синий океан и мягкие облака (рисуем сами; настоящих материков нет, это только вид в сцене)
+function earthTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const g = canvas.getContext('2d');
+  const sea = g.createLinearGradient(0, 0, 0, 256);
+  sea.addColorStop(0, '#2a5fbf');
+  sea.addColorStop(0.5, '#1d4e9e');
+  sea.addColorStop(1, '#2a5fbf');
+  g.fillStyle = sea;
+  g.fillRect(0, 0, 512, 256);
+  let seed = 7;                                   // свои «случайные» числа: каждый раз одна и та же картина
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 70; i++) {                  // облачные полосы
+    const x = rand() * 512, y = 20 + rand() * 216, w = 40 + rand() * 90, h = 6 + rand() * 14;
+    const cloud = g.createRadialGradient(x, y, 0, x, y, w);
+    cloud.addColorStop(0, 'rgba(255,255,255,0.55)');
+    cloud.addColorStop(1, 'rgba(255,255,255,0)');
+    g.save();
+    g.translate(x, y);
+    g.scale(1, h / w);
+    g.translate(-x, -y);
+    g.fillStyle = cloud;
+    g.fillRect(x - w, y - w, w * 2, w * 2);
+    g.restore();
+  }
+  g.fillStyle = 'rgba(255,255,255,0.8)';          // полярные шапки
+  g.fillRect(0, 0, 512, 10);
+  g.fillRect(0, 246, 512, 10);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+// Солнце: яркое ядро, два слоя свечения и тонкие лучи
 const sunMarker = new THREE.Group();
-sunMarker.add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 24, 24), new THREE.MeshBasicMaterial({ color: 0xffd34d })));
+const sunCore = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 32), new THREE.MeshBasicMaterial({ color: 0xfff1b8 }));
+sunMarker.add(sunCore);
+sunMarker.add(glowSprite([[0, 'rgba(255,236,160,0.95)'], [0.25, 'rgba(255,200,90,0.55)'], [0.6, 'rgba(255,150,40,0.16)'], [1, 'rgba(255,120,20,0)']], 2.4));
+sunMarker.add(glowSprite([[0, 'rgba(255,210,120,0.28)'], [0.5, 'rgba(255,170,60,0.08)'], [1, 'rgba(255,140,40,0)']], 5));
 const sunLabel = labelSprite(['Sun', 'direction exact, size not to scale'], '#ffd34d');
-sunLabel.position.set(0, 0.65, 0);
+sunLabel.position.set(0, 1.0, 0);
 sunMarker.add(sunLabel);
 sunMarker.visible = false;
 scene.add(sunMarker);
 
+// Земля: шар с облаками, освещённый тем же Солнцем (видна своя фаза), и голубая дымка атмосферы
 const earthMarker = new THREE.Group();
-earthMarker.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), new THREE.MeshBasicMaterial({ color: 0x3d8bff })));
+const earthBall = new THREE.Mesh(
+  new THREE.SphereGeometry(0.22, 48, 48),
+  new THREE.MeshStandardMaterial({ map: earthTexture(), roughness: 0.75, metalness: 0 }),
+);
+earthMarker.add(earthBall);
+earthMarker.add(glowSprite([[0, 'rgba(120,180,255,0)'], [0.4, 'rgba(120,180,255,0.0)'], [0.55, 'rgba(110,170,255,0.45)'], [1, 'rgba(90,150,255,0)']], 0.95));
 const earthLabel = labelSprite(['Earth', 'direction exact, size not to scale'], '#7db4ff');
-earthLabel.position.set(0, 0.5, 0);
+earthLabel.position.set(0, 0.55, 0);
 earthMarker.add(earthLabel);
 earthMarker.visible = false;
 scene.add(earthMarker);
+
+// Свои 3D-модели (необязательно). Файл .glb лежит в папке models/; null = рисовать само.
+// Если файл не загрузится, остаётся нарисованное тело, сайт работает как раньше.
+const SUN_MODEL = null;                      // например 'models/sun.glb'
+const EARTH_MODEL = 'models/earth.glb';      // Земля (NASA-стиль, текстуры уменьшены до 2048 px)
+const SUN_TEXTURE = 'textures/sun.jpg';      // картинка поверхности Солнца на шаре
+
+// Загружает .glb, подгоняет под нужный диаметр, ставит вместо старого тела (placeholder) в группе group.
+// unlit = true: материалы без освещения (Солнце светится само)
+async function loadModelInto(group, placeholder, path, diameter, unlit) {
+  try {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const gltf = await new GLTFLoader().loadAsync(fileUrl(`../${path}`));
+    const model = gltf.scene;
+    if (unlit) {
+      model.traverse(o => {
+        if (!o.isMesh) return;
+        const old = Array.isArray(o.material) ? o.material[0] : o.material;
+        o.material = new THREE.MeshBasicMaterial({ map: old.emissiveMap ?? old.map ?? null, color: old.map || old.emissiveMap ? 0xffffff : (old.color ?? 0xffd34d) });
+      });
+    }
+    const size = new THREE.Box3().setFromObject(model).getSize(new THREE.Vector3());
+    model.scale.setScalar(diameter / (Math.max(size.x, size.y, size.z) || 1));
+    const center = new THREE.Box3().setFromObject(model).getCenter(new THREE.Vector3());
+    model.position.sub(center);
+    group.remove(placeholder);
+    group.add(model);
+  } catch (error) {
+    console.warn(`Model ${path} not used:`, error.message);
+  }
+}
+if (SUN_MODEL) loadModelInto(sunMarker, sunCore, SUN_MODEL, 0.6, true);
+if (EARTH_MODEL) loadModelInto(earthMarker, earthBall, EARTH_MODEL, 0.44, false);
+
+// Поверхность Солнца: картинка на шаре, медленно вращается
+if (SUN_TEXTURE && !SUN_MODEL) {
+  new THREE.TextureLoader().load(
+    fileUrl(`../${SUN_TEXTURE}`),
+    tex => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      sunCore.material.map = tex;
+      sunCore.material.color.setHex(0xffffff);
+      sunCore.material.needsUpdate = true;
+    },
+    undefined,
+    () => console.warn(`Sun texture ${SUN_TEXTURE} not used`),
+  );
+}
 
 let earthDir = null;   // последнее направление на Землю (оси three.js), единичный вектор
 
@@ -197,6 +317,7 @@ const frameCallbacks = [];
 export function onFrame(fn) {
   frameCallbacks.push(fn);
 }
+if (SUN_TEXTURE && !SUN_MODEL) onFrame(() => { sunCore.rotation.y += 0.0006; });   // Солнце медленно вращается
 
 // 11. ЦИКЛ АНИМАЦИИ
 function animate() {
