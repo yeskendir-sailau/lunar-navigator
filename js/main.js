@@ -69,10 +69,7 @@ const reportCard = th ? createReportCard({
   hasTerrain: Boolean(horizons),
   onAccuracy: () => { refresh(); compare?.setAccuracy(reportCard.getAccuracy()); },
 }) : null;
-const compare = th ? createCompare({
-  eph, sites, th, horizons, accuracyM: th.neighbors.default_accuracy_1sigma_m,
-  onPdf: places => openPdfReport({ kind: 'compare', ctx, places, ms: timeMs, accuracyM: reportCard.getAccuracy() }),
-}) : null;
+const compare = th ? createCompare({ eph, sites, th, horizons, accuracyM: th.neighbors.default_accuracy_1sigma_m }) : null;
 const astro = eph ? createAstroPanel(eph, {
   onPin: (slot, lat, lon) => compare?.setSlot(slot, lat, lon),
   getMask: (lat, lon) => horizonFor(horizons, lat, lon),

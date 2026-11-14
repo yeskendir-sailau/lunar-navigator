@@ -3,9 +3,17 @@
 // Кнопка «How it is calculated» открывает окно с порогами из data/thresholds.json.
 import { STATUS } from './report-logic.js';
 import { fmtHours, fmtUtc } from './format.js';
+import { addFold } from './panel-fold.js';
 
 const NASA_URL = 'https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf';
 const ACCURACY_CHOICES = [10, 30, 100, 300, 1000, 3000];   // метры, 1σ
+
+// Размер аппарата. Пока это только пояснение: на цвета он не влияет (проверенного правила для него у нас нет).
+const LANDER_SIZES = [
+  { key: 'small',  label: 'Small (CLPS)',         text: "Commercial robotic lander of NASA's CLPS programme, up to about 2 t (e.g. Blue Ghost, Odysseus)." },
+  { key: 'medium', label: 'Medium (heavy cargo)', text: 'Large uncrewed lander, about 2–10 t (e.g. Chang\'e 5/6 class, Blue Moon Mk 1 class).' },
+  { key: 'large',  label: 'Large (crewed)',       text: 'Crewed lander, roughly 10 t and up (e.g. Apollo LM, Starship HLS).' },
+];
 
 function make(tag, className, text) {
   const el = document.createElement(tag);
@@ -73,6 +81,7 @@ function buildHowTo(th, hasTerrain) {
       : 'No terrain: the horizon is treated as flat, so mountains and crater walls are ignored. Real sunlight and Earth visibility near mountains and the poles can differ.',
     'Neighbours are only the sites in our list (data/sites.json), not every object on the Moon.',
     'Landing accuracy is a number you choose; the tool does not predict it.',
+    'Lander size (Small / Medium / Large) is a note for now: it does not change any colour, because we have no verified rule for it. The weight ranges are approximate.',
     'No atmosphere refraction (the Moon has none), Sun and Earth treated as points.',
     'Sun and Earth positions: JPL DE421 ephemeris via Skyfield, including libration, hourly samples, linear interpolation.',
     'The 3D globe is a smooth sphere: it shows the phase, not mountain shadows.',
@@ -96,8 +105,8 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
     .report-card.open { opacity: 1; transform: none; pointer-events: auto; }
     .report-card .top { display: flex; align-items: center; gap: 8px; }
     .report-card .coords { font-weight: 600; font-size: 14px; flex: 1; }
-    .report-card .fold { width: 26px; height: 26px; border: 0; border-radius: 6px; background: var(--btn, #1d2740); color: var(--text, #e8edf5); cursor: pointer; }
-    .report-card .when { color: var(--muted, #9fb0c8); font-size: 11px; margin-bottom: 8px; }
+    .report-card .fold { width: 26px; height: 26px; border: 0; border-radius: 6px; background: #1d2740; color: #e8edf5; cursor: pointer; }
+    .report-card .when { color: #9fb0c8; font-size: 11px; margin-bottom: 8px; }
     .report-card .verdict { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px;
       border-radius: 10px; background: var(--fill, rgba(255,255,255,.06)); }
     .report-card .badge { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
@@ -113,12 +122,12 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
       font-size: 12px; font-weight: 700; color: #0b0f17; }
     .report-card .block .w { font-weight: 400; font-size: 12px; color: var(--muted, #9fb0c8); margin-left: auto; }
     .report-card .block .h { font-size: 12px; }
-    .report-card .block ul { margin: 2px 0 0; padding-left: 16px; color: var(--muted, #9fb0c8); font-size: 12px; }
-    .report-card .block .why { color: var(--text, #e8edf5); font-size: 12px; margin-top: 2px; }
-    .report-card .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
-    .report-card .actions button { padding: 5px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer;
-      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit; }
-    .report-card .small { color: var(--muted2, #7f8fa6); font-size: 11px; }
+    .report-card .block ul { margin: 2px 0 0; padding-left: 16px; color: #9fb0c8; font-size: 12px; }
+    .report-card .block .why { color: #e8edf5; font-size: 12px; margin-top: 2px; }
+    .report-card .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .report-card .actions button { padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
+    .report-card .small { color: #7f8fa6; font-size: 11px; }
     .report-card.folded .verdict ~ *, .report-card.folded .when { display: none; }
     .howto-back { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6); display: none;
       align-items: center; justify-content: center; padding: 16px; }
@@ -140,10 +149,7 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
 
   const top = make('div', 'top');
   const coords = make('div', 'coords');
-  const fold = make('button', 'fold', '–');
-  fold.title = 'Collapse / expand';
-  fold.setAttribute('aria-label', 'Collapse or expand the report');
-  top.append(coords, fold);
+  top.append(coords);
   const when = make('div', 'when');
 
   const verdict = make('div', 'verdict');
@@ -168,14 +174,30 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
   select.value = String(th.neighbors.default_accuracy_1sigma_m);
   params.append(accLabel, select);
 
+  // Размер аппарата: выпадающий список и пояснение под ним
+  const sizeRow = make('div', 'params');
+  const sizeLabel = make('label', '', 'Lander size:');
+  const sizeSelect = make('select');
+  sizeSelect.id = 'lander-size';
+  sizeLabel.htmlFor = sizeSelect.id;
+  for (const s of LANDER_SIZES) {
+    const o = make('option', '', s.label);
+    o.value = s.key;
+    sizeSelect.appendChild(o);
+  }
+  sizeRow.append(sizeLabel, sizeSelect);
+  const sizeNote = make('div', 'size-note');
+  const showSize = () => {   // пояснение + честная пометка: на цвета размер пока не влияет
+    sizeNote.textContent = LANDER_SIZES.find(s => s.key === sizeSelect.value).text + ' (A note only: colours do not change.)';
+  };
+  sizeSelect.addEventListener('change', showSize);
+  showSize();
+
   const blocksBox = make('div');
   const actions = make('div', 'actions');
   const howBtn = make('button', '', 'How it is calculated');
   const noteSmall = make('span', 'small', '');
-  const pdfBtn = make('button', 'pdf-btn', 'Save PDF');
-  pdfBtn.title = 'Open a printable report: choose "Save as PDF" in the print window';
-  pdfBtn.addEventListener('click', () => onPdf?.());
-  actions.append(howBtn, pdfBtn, noteSmall);
+  actions.append(howBtn, noteSmall);
   el.append(top, when, verdict, params, blocksBox, actions);
   document.body.appendChild(el);
 
@@ -196,10 +218,6 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
   back.addEventListener('click', e => { if (e.target === back) closeHow(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHow(); });
 
-  fold.addEventListener('click', () => {
-    const folded = el.classList.toggle('folded');
-    fold.textContent = folded ? '+' : '–';
-  });
   select.addEventListener('change', () => onAccuracy?.(Number(select.value)));
 
   function paintBadge(node, status, big) {
@@ -249,6 +267,7 @@ export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) 
   return {
     update,
     getAccuracy: () => Number(select.value),
+    getLanderSize: () => sizeSelect.value,
     openHow,
   };
 }

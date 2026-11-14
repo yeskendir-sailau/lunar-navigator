@@ -5,6 +5,8 @@ import { buildReport, STATUS } from './report-logic.js';
 import { assessNeighbors } from './safety.js';
 import { horizonFor } from './horizon.js';
 import { fmtHours, fmtDistance, fmtUtc } from './format.js';
+import { addFold } from './panel-fold.js';
+import { SLOT_COLORS } from './slot-colors.js';
 
 const RANK = { green: 0, yellow: 1, red: 2, unknown: 3 };
 const SLOTS = ['A', 'B', 'C'];
@@ -90,7 +92,7 @@ function make(tag, className, text) {
 }
 
 // Панель на странице. setSlot('A'|'B'|'C', lat, lon) добавляет место, setTime(ms) и setAccuracy(m) пересчитывают.
-export function createCompare({ eph, sites, th, horizons = null, accuracyM, onPdf }) {
+export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
   const el = make('div', 'compare');
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Compare places');
@@ -106,7 +108,9 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onPd
   head.appendChild(headBtns);
   const table = make('table');
   const foot = make('div', 'compare-note');
-  el.append(head, table, foot);
+  el.appendChild(head);
+  addFold(el, head, [], { before: closeBtn });   // «−» / «+» перед крестиком
+  el.append(table, foot);
   document.body.appendChild(el);
 
   const slots = { A: null, B: null, C: null };
@@ -127,10 +131,16 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onPd
     thead.appendChild(make('th', '', Number.isFinite(ms) ? fmtUtc(ms).slice(5) : ''));
     used.forEach((s, i) => {
       const th_ = make('th');
-      th_.appendChild(make('div', 'slot', `${s}: ${cmp.columns[i].label}`));
+      const color = SLOT_COLORS[s].css;
+      th_.style.borderTop = `4px solid ${color}`;   // цвет места, как на Луне
+      const slotLabel = make('div', 'slot');
+      const dot = make('span', 'slot-dot');
+      dot.style.background = color;
+      slotLabel.append(dot, document.createTextNode(`${s}: ${cmp.columns[i].label}`));
+      th_.appendChild(slotLabel);
       const clear = make('button', 'clear', 'remove');
       clear.setAttribute('aria-label', `Remove place ${s}`);
-      clear.addEventListener('click', () => { slots[s] = null; render(); });
+      clear.addEventListener('click', () => { slots[s] = null; onSlotChange?.(s, null); render(); });
       th_.appendChild(clear);
       thead.appendChild(th_);
     });
@@ -160,6 +170,7 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onPd
   return {
     setSlot(slot, lat, lon) {
       slots[slot] = { lat, lon, label: placeLabel(lat, lon, sites) };
+      onSlotChange?.(slot, slots[slot]);
       dismissed = false;
       render();
     },

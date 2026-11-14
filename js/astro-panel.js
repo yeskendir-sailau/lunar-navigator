@@ -4,6 +4,8 @@
 // Не зависит от three.js. Всё создаётся кодом, поэтому в HTML ничего добавлять не нужно.
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
 import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
+import { addFold } from './panel-fold.js';
+import { SLOT_COLORS } from './slot-colors.js';
 
 const cssVar = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 const CHART_DAYS = 30;
@@ -21,7 +23,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   style.textContent = `
     .astro-panel {
       position: fixed; top: 96px; right: 16px; z-index: 20;
-      width: 320px; max-width: calc(100vw - 32px); max-height: calc(100vh - 112px); overflow: auto;
+      width: 350px; max-width: calc(100vw - 32px); max-height: calc(100vh - 112px); overflow: auto;
       box-sizing: border-box; padding: 12px 14px;
       background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5);
       border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
@@ -31,16 +33,16 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     }
     .astro-panel.open { opacity: 1; transform: none; pointer-events: auto; }
     .astro-panel h3 { margin: 0 0 4px; font-size: 15px; }
-    .astro-panel .timeline { color: var(--muted, #9fb0c8); margin-bottom: 8px; }
-    .astro-panel .pins { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; color: var(--muted, #9fb0c8); }
+    .astro-panel .timeline { color: #9fb0c8; margin-bottom: 8px; }
+    .astro-panel .pins { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; color: #9fb0c8; }
     .astro-panel .pins button {
       padding: 3px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer; font: inherit;
       border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px;
     }
     .astro-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0 0 8px; }
-    .astro-panel dt { color: var(--muted, #9fb0c8); }
+    .astro-panel dt { color: #9fb0c8; }
     .astro-panel dd { margin: 0; text-align: right; }
-    .astro-panel .status { color: var(--muted, #9fb0c8); margin: 0 0 6px; }
+    .astro-panel .status { color: #9fb0c8; margin: 0 0 6px; }
     .astro-panel canvas { display: block; margin-top: 4px; }
     .astro-panel .legend { display: flex; gap: 12px; color: var(--muted, #9fb0c8); font-size: 11px; margin-top: 4px; }
     .astro-panel .note { color: var(--muted2, #7f8fa6); font-size: 11px; margin-top: 6px; }
@@ -49,7 +51,9 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
 
   // --- Разметка ---
   const el = make('div', 'astro-panel');
-  el.appendChild(make('h3', '', 'Sun & Earth at this point'));
+  const head = make('div', 'head');
+  head.appendChild(make('h3', '', 'Sun & Earth at this point'));
+  el.appendChild(head);
   const timeLine = make('div', 'timeline');
   el.appendChild(timeLine);
 
@@ -58,6 +62,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   pinRow.appendChild(make('span', '', 'Compare:'));
   for (const slot of ['A', 'B', 'C']) {
     const button = make('button', '', `Set as ${slot}`);
+    button.style.borderLeft = `5px solid ${SLOT_COLORS[slot].css}`;   // тот же цвет, что у метки на Луне
     button.addEventListener('click', () => {
       if (lat !== null) onPin?.(slot, lat, lon);
     });
@@ -69,16 +74,18 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   el.appendChild(status);
 
   const list = make('dl');
-  function row(label) {
-    const dt = make('dt', '', label);
-    const dd = make('dd', '', '–');
+  function row(label, sub = false) {
+    const dt = make('dt', sub ? 'sub' : '', label);
+    const dd = make('dd', sub ? 'sub' : '', '–');
     list.append(dt, dd);
     return { dt, dd };
   }
   const sunRow = row('Sun');
   const sunEventRow = row('Sunrise / sunset');
+  const sunTimeRow = row('In Earth time', true);
   const earthRow = row('Earth');
   const earthEventRow = row('Earthrise / Earthset');
+  const earthTimeRow = row('In Earth time', true);
   const linkRow = row('Direct link to Earth');
   el.appendChild(list);
 
@@ -93,6 +100,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   el.appendChild(legend);
   const noteEl = make('div', 'note');
   el.appendChild(noteEl);
+  addFold(el, head, [timeLine]);   // кнопка «−» / «+»: в свёрнутом виде остаются заголовок и время
   document.body.appendChild(el);
 
   // --- Состояние ---
@@ -102,7 +110,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   let ms = inDataRange(eph, Date.now()) ? Date.now() : eph.startMs;
 
   function drawChart(series) {
-    const W = 286;
+    const W = 316;
     const H = 100;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
@@ -156,10 +164,15 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     line(series.sun, cssVar('--chart-sun', '#f8f4e3'));
   }
 
-  function eventText(crossing, now) {
-    return crossing
-      ? `in ${fmtDuration(crossing.timeMs - now)} (${fmtUtc(crossing.timeMs)})`
-      : 'not within the next 31 days';
+  // Две короткие строки вместо одной длинной: «через сколько» и «когда по времени Земли (UTC)»
+  function setEvent(eventRow, timeRow, crossing, now) {
+    if (crossing) {
+      eventRow.dd.textContent = `in ${fmtDuration(crossing.timeMs - now)}`;
+      timeRow.dd.textContent = fmtUtc(crossing.timeMs);
+    } else {
+      eventRow.dd.textContent = 'not within 31 days';
+      timeRow.dd.textContent = '–';
+    }
   }
 
   function render() {
@@ -172,7 +185,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     const c = Number.isFinite(ms) ? conditionsAt(eph, lat, lon, ms, mask) : null;
     if (!c) {
       status.textContent = `No data for this time. Data covers ${fmtUtc(eph.startMs)} – ${fmtUtc(eph.endMs)}.`;
-      for (const r of [sunRow, sunEventRow, earthRow, earthEventRow, linkRow]) r.dd.textContent = '–';
+      for (const r of [sunRow, sunEventRow, sunTimeRow, earthRow, earthEventRow, earthTimeRow, linkRow]) r.dd.textContent = '–';
       drawChart({ timesMs: [] });
       return;
     }
@@ -184,11 +197,11 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
 
     const sunX = nextCrossing(eph, 'sun', lat, lon, ms, undefined, undefined, mask);
     sunEventRow.dt.textContent = sunX ? (sunX.rising ? 'Next sunrise' : 'Next sunset') : 'Sunrise / sunset';
-    sunEventRow.dd.textContent = eventText(sunX, ms);
+    setEvent(sunEventRow, sunTimeRow, sunX, ms);
 
     const earthX = nextCrossing(eph, 'earth', lat, lon, ms, undefined, undefined, mask);
     earthEventRow.dt.textContent = earthX ? (earthX.rising ? 'Next Earthrise' : 'Next Earthset') : 'Earthrise / Earthset';
-    earthEventRow.dd.textContent = eventText(earthX, ms);
+    setEvent(earthEventRow, earthTimeRow, earthX, ms);
 
     drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
   }
