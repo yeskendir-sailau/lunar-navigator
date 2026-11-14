@@ -38,6 +38,7 @@ const texture = new THREE.TextureLoader().load(fileUrl('../textures/moon_4k.jpg'
 texture.colorSpace = THREE.SRGBColorSpace;
 
 const heightMap = new THREE.TextureLoader().load(fileUrl('../textures/moon_height.jpg'));
+heightMap.wrapS = THREE.RepeatWrapping;   // шов: левый и правый край карты высот сшиваются, без чёрной щели
 // Шар с большим числом точек: каждую можно поднять или опустить
 const geometry = new THREE.SphereGeometry(1, 512, 256);
 // Настоящие горы на Луне ±10 км при радиусе 1737 км: без увеличения их не видно.
