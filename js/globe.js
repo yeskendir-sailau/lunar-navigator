@@ -67,8 +67,8 @@ scene.add(earthshine);
 // 7. СОЛНЦЕ И ЗЕМЛЯ В СЦЕНЕ
 // Направление на каждое тело настоящее (из sun_earth.json), а расстояние и размер условные:
 // настоящие не поместились бы на экране, поэтому рядом с телом подпись «not to scale».
-const SUN_DISTANCE = 7;
-const EARTH_DISTANCE = 5;
+const SUN_DISTANCE = 16;
+const EARTH_DISTANCE = 8;
 
 function labelSprite(lines, color) {
   const canvas = document.createElement('canvas');
@@ -154,7 +154,7 @@ sunLabel.position.set(0, 1.0, 0);
 sunMarker.add(sunLabel);
 sunMarker.visible = false;
 scene.add(sunMarker);
-sunMarker.scale.setScalar(4);
+sunMarker.scale.setScalar(6.5);
 
 // Земля: шар с облаками, освещённый тем же Солнцем (видна своя фаза), и голубая дымка атмосферы
 const earthMarker = new THREE.Group();
@@ -167,7 +167,7 @@ earthMarker.add(glowSprite([[0, 'rgba(120,180,255,0)'], [0.4, 'rgba(120,180,255,
 const earthLabel = labelSprite(['Earth', 'direction exact, size not to scale'], '#7db4ff');
 earthLabel.position.set(0, 0.55, 0);
 earthMarker.add(earthLabel);
-sunMarker.scale.setScalar(4);
+earthMarker.scale.setScalar(4.5);
 earthMarker.visible = false;
 scene.add(earthMarker);
 
