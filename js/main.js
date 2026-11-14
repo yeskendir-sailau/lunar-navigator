@@ -57,7 +57,15 @@ const reportCard = th ? createReportCard({
   hasTerrain: Boolean(horizons),
   onAccuracy: () => { refresh(); compare?.setAccuracy(reportCard.getAccuracy()); },
 }) : null;
-const compare = th ? createCompare({ eph, sites, th, horizons, accuracyM: th.neighbors.default_accuracy_1sigma_m }) : null;
+const compare = th ? createCompare({
+  eph, sites, th, horizons,
+  accuracyM: th.neighbors.default_accuracy_1sigma_m,
+  // Место A/B/C поставили или убрали: рисуем (стираем) цветную метку на Луне
+  onSlotChange: (slot, place) => {
+    if (place) picker?.setSlotMarker(slot, place.lat, place.lon);
+    else picker?.clearSlotMarker(slot);
+  },
+}) : null;
 const astro = eph ? createAstroPanel(eph, {
   onPin: (slot, lat, lon) => compare?.setSlot(slot, lat, lon),
   getMask: (lat, lon) => horizonFor(horizons, lat, lon),

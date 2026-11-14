@@ -76,7 +76,7 @@ _Table to be filled in from the output of `tools/horizons_check.mjs`. Not filled
 - Sun and Earth are treated as points (the centre of the disc); no atmosphere on the Moon, so no refraction.
 - Sun and Earth data cover only the dates in `data/sun_earth.json`. Outside this range the report says "No data".
 - Site coordinates are from public lists and are good to roughly tens of metres to a few kilometres, depending on the mission. Landing accuracy in the report is 1σ and can be changed (10 m – 3 km).
-- There is no "lander class" (small / large) setting: we do not yet have a rule for what it would change, so we did not add a switch that does nothing.
+- The "Lander size" list (Small CLPS / Medium heavy cargo / Large crewed) is a note only: we do not yet have a verified rule for what it would change, so it does not change any colour. The weight ranges in it are approximate.
 - **This is not a tool for real mission planning.**
 
 ## Updating the data

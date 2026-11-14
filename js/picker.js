@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { camera, renderer, moon, onFrame, flyTo } from './globe.js';
 import { latLonToVector3, vector3ToLatLon, angularDistanceDeg } from './geo.js';
+import { SLOT_COLORS } from './slot-colors.js';
 
 // getPreview(lat, lon) -> { hex, icon, word } | null: быстрый расчёт для кольца при наведении (необязательно)
 // onPoint(lat, lon) может вернуть цвет (число) для кольца выбранной точки
@@ -32,10 +33,62 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     'background:rgba(10,14,22,.92);color:#e8edf5;border:1px solid rgba(255,255,255,.2);font:12px system-ui,sans-serif;';
   document.body.appendChild(tip);
 
+  // --- Метки мест A / B / C для сравнения: цветное кольцо с буквой, остаются на Луне, пока место выбрано ---
+  const slotMarkers = {};
+
+  function letterTexture(letter, css) {
+    const c = document.createElement('canvas');
+    c.width = 64; c.height = 64;
+    const g = c.getContext('2d');
+    g.font = 'bold 44px system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.lineWidth = 8;
+    g.strokeStyle = 'rgba(0,0,0,0.85)';
+    g.strokeText(letter, 32, 34);
+    g.fillStyle = css;
+    g.fillText(letter, 32, 34);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  function makeSlotMarker(slot) {
+    const { hex, css } = SLOT_COLORS[slot];
+    const group = new THREE.Group();
+    const dark = new THREE.Mesh(new THREE.RingGeometry(0.034, 0.05, 48),
+      new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide, transparent: true, opacity: 0.55 }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.038, 0.046, 48),
+      new THREE.MeshBasicMaterial({ color: hex, side: THREE.DoubleSide }));
+    ring.position.z = 0.0008;   // чуть выше тёмной подложки
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: letterTexture(slot, css), transparent: true, depthWrite: false }));
+    label.center.set(0.5, -0.9);   // буква над кольцом
+    label.scale.setScalar(0.11);
+    label.position.z = 0.0016;
+    group.add(dark, ring, label);
+    group.visible = false;
+    moon.parent.add(group);
+    return group;
+  }
+
+  function setSlotMarker(slot, lat, lon) {
+    if (!SLOT_COLORS[slot]) return;
+    const marker = (slotMarkers[slot] ??= makeSlotMarker(slot));
+    const normal = latLonToVector3(lat, lon, 1);
+    marker.position.copy(normal).multiplyScalar(1.006);
+    marker.lookAt(normal.clone().multiplyScalar(2));
+    marker.visible = true;
+  }
+
+  function clearSlotMarker(slot) {
+    if (slotMarkers[slot]) slotMarkers[slot].visible = false;
+  }
+
   onFrame(() => {   // кольца тоже масштабируем при приближении
     const k = THREE.MathUtils.clamp(camera.position.length() / 4, 0.3, 2.5);
     selector.scale.setScalar(k);
     preview.scale.setScalar(k);
+    for (const marker of Object.values(slotMarkers)) marker.scale.setScalar(k);
   });
 
   function setSelectorColor(hex) {
@@ -147,5 +200,5 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
   canvas.addEventListener('pointerleave', hidePreview);
 
   // Выбор точки «из кода» (ввод координат или названия): кольцо, карточка и полёт камеры
-  return { selectPoint: (lat, lon) => choose(lat, lon, 0.3, true), setSelectorColor };
+  return { selectPoint: (lat, lon) => choose(lat, lon, 0.3, true), setSelectorColor, setSlotMarker, clearSlotMarker };
 }

@@ -40,26 +40,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
   body .astro-panel { max-height: calc(100vh - 96px - 130px); }
 }
 
-/* Сравнение мест: окно посередине, закрывается крестиком */
+/* Сравнение мест: окно внизу по центру (чтобы не закрывать Луну), сворачивается «−», закрывается крестиком */
 .compare {
-  position: fixed; top: 50%; left: 50%; z-index: 40; transform: translate(-50%, -48%);
-  width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box;
+  position: fixed; bottom: 16px; left: 50%; z-index: 40; transform: translate(-50%, 12px);
+  width: clamp(460px, calc(100vw - 780px), 640px); max-height: 42vh; overflow: auto; box-sizing: border-box;
   padding: 10px 14px 12px; background: rgba(10, 14, 22, 0.96); color: var(--text);
   border: 1px solid var(--panel-line); border-radius: 12px; font: 13px/1.45 system-ui, sans-serif;
   opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s ease;
 }
-.compare.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.compare.open { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 .compare-head { display: flex; align-items: center; justify-content: space-between; }
 .compare h3 { margin: 0 0 6px; font-size: 16px; }
+.compare-head .fold-btn { margin-left: auto; }
 .compare-close, .compare .clear {
   color: var(--text); background: #1d2740; cursor: pointer; font: inherit;
   border: 1px solid rgba(255,255,255,.25); border-radius: 6px; padding: 2px 8px;
 }
 .compare table { width: 100%; border-collapse: collapse; }
-.compare th, .compare td { padding: 4px 8px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.08); }
+.compare th, .compare td { padding: 3px 6px; text-align: left; vertical-align: top; border-bottom: 1px solid rgba(255,255,255,.08); }
 .compare thead th, .compare tr:first-child th { color: var(--muted); font-weight: 600; }
 .compare tbody th, .compare tr th:first-child { color: var(--muted); font-weight: 400; white-space: nowrap; }
 .compare .slot { font-weight: 600; color: var(--text); }
+.compare .slot-dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; vertical-align: middle; }
 .compare .clear { padding: 0 6px; font-size: 11px; margin-top: 2px; }
 .compare tr.status-row td { font-weight: 700; }
 .compare td.best { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 4px; background: rgba(76,201,240,.08); }
