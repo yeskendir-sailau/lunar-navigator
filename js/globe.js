@@ -37,18 +37,24 @@ controls.enablePan = false;
 const texture = new THREE.TextureLoader().load(fileUrl('../textures/moon_4k.jpg'));
 texture.colorSpace = THREE.SRGBColorSpace;
 
-const geometry = new THREE.SphereGeometry(1, 64, 64);
-0// Лёгкий рельеф: та же текстура используется как карта высот, чтобы кратеры и борозды чуть «выступали» на свету.
-// Если рельеф кажется слишком сильным или слабым, поменяйте MOON_RELIEF (0 = выключить).
-const MOON_RELIEF = 0.03;
+const heightMap = new THREE.TextureLoader().load(fileUrl('../textures/moon_height.jpg'));
+// Шар с большим числом точек: каждую можно поднять или опустить
+const geometry = new THREE.SphereGeometry(1, 512, 256);
+// Настоящие горы на Луне ±10 км при радиусе 1737 км: без увеличения их не видно.
+// 0.02 = рельеф увеличен примерно в 3 раза. 0 = выключить.
+const MOON_RELIEF = 0.08;
 const material = new THREE.MeshStandardMaterial({
   map: texture,
-  bumpMap: MOON_RELIEF > 0 ? texture : null,
-  bumpScale: MOON_RELIEF,
+  displacementMap: heightMap,
+  displacementScale: MOON_RELIEF,
+  displacementBias: -MOON_RELIEF / 2,   // низины вниз, горы вверх
+  bumpMap: heightMap,
+  bumpScale: 0.06,
   roughness: 1,
   metalness: 0,
 });
 const moon = new THREE.Mesh(geometry, material);
+scene.add(moon);
 scene.add(moon);
 
 // 6. СВЕТ

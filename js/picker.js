@@ -33,6 +33,19 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     'background:rgba(10,14,22,.92);color:#e8edf5;border:1px solid rgba(255,255,255,.2);font:12px system-ui,sans-serif;';
   document.body.appendChild(tip);
 
+  // --- Кольца поверх рельефа: не проверяем глубину, рисуем последними (иначе горы закрывают кольцо) ---
+  function drawOnTop(obj) {
+    obj.traverse(o => {
+      if (!o.material) return;
+      o.renderOrder = 10;
+      o.material.depthTest = false;
+      o.material.depthWrite = false;
+      o.material.transparent = true;
+    });
+  }
+  drawOnTop(selector);
+  drawOnTop(preview);
+
   // --- Метки мест A / B / C для сравнения: цветное кольцо с буквой, остаются на Луне, пока место выбрано ---
   const slotMarkers = {};
 
@@ -70,6 +83,7 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     label.position.z = 0.0016;
     group.add(dark, ring, label);
     group.visible = false;
+    drawOnTop(group);
     moon.parent.add(group);
     return group;
   }
@@ -78,7 +92,7 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     if (!SLOT_COLORS[slot]) return;
     const marker = (slotMarkers[slot] ??= makeSlotMarker(slot));
     const normal = latLonToVector3(lat, lon, 1);
-    marker.position.copy(normal).multiplyScalar(1.006);
+    marker.position.copy(normal).multiplyScalar(1.047);
     marker.lookAt(normal.clone().multiplyScalar(2));
     marker.visible = true;
   }
@@ -92,6 +106,17 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     selector.scale.setScalar(k);
     preview.scale.setScalar(k);
     for (const marker of Object.values(slotMarkers)) marker.scale.setScalar(k);
+
+    // Кольца рисуются поверх рельефа, поэтому на обратной стороне Луны их надо прятать самим
+    const camDir = camera.position.clone().normalize();
+    for (const ring of [selector, preview, ...Object.values(slotMarkers)]) {
+      const front = ring.position.clone().normalize().dot(camDir) > 0.05;
+      ring.traverse(o => {
+        if (!o.material) return;
+        o.material.userData.baseOpacity ??= o.material.opacity;
+        o.material.opacity = front ? o.material.userData.baseOpacity : 0;
+      });
+    }
   });
 
   function setSelectorColor(hex) {
@@ -105,7 +130,7 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
 
   function placeSelector(lat, lon) {
     const normal = latLonToVector3(lat, lon, 1);
-    selector.position.copy(normal).multiplyScalar(1.006);
+    selector.position.copy(normal).multiplyScalar(1.047);
     selector.lookAt(normal.clone().multiplyScalar(2));   // кольцо «смотрит» наружу от Луны
     selector.visible = true;
   }
@@ -191,7 +216,7 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
     const p = getPreview(lat, lon);
     if (!p) { hidePreview(); return; }
     const normal = latLonToVector3(lat, lon, 1);
-    preview.position.copy(normal).multiplyScalar(1.006);
+    preview.position.copy(normal).multiplyScalar(1.047);
     preview.lookAt(normal.clone().multiplyScalar(2));
     previewMat.color.setHex(p.hex);
     preview.visible = true;

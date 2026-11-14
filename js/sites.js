@@ -37,7 +37,7 @@ export function addMarkers(sites) {
   for (const site of sites) {
     const color = TYPE_COLORS[site.type] ?? DEFAULT_COLOR;
     const marker = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color }));
-    marker.position.copy(latLonToVector3(site.lat, site.lon, 1.004));  // чуть над поверхностью
+    marker.position.copy(latLonToVector3(site.lat, site.lon, 1.012));  // чуть над поверхностью
     marker.userData.site = site;
     group.add(marker);
   }
