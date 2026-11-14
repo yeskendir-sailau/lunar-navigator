@@ -38,10 +38,11 @@ function bestIndexes(values, better) {
   return known.filter(x => x.v === target).map(x => x.i);
 }
 
-// ctx: { eph, sites, th, horizons }; places: [{lat, lon, label?}]; opts: { ms, accuracyM }
+// ctx: { eph, sites, th, horizons }; places: [{lat, lon, label?, ms?}]; opts: { ms, accuracyM }
+// У места может быть своя дата (p.ms): так сравнивают одно место в разные даты. Без неё берётся общая ms.
 // Вернёт { columns: [{label, report}], rows: [{label, kind, cells: [{text, status?, value}], best: [index]}] }
 export function buildComparison(ctx, places, { ms, accuracyM }) {
-  const reports = places.map(p => buildReport(ctx, p.lat, p.lon, { ms, accuracyM }));
+  const reports = places.map(p => buildReport(ctx, p.lat, p.lon, { ms: Number.isFinite(p.ms) ? p.ms : ms, accuracyM }));
   const nearest = places.map(p => {
     const mask = horizonFor(ctx.horizons, p.lat, p.lon);
     return assessNeighbors(p.lat, p.lon, ctx.sites, accuracyM, ctx.th.neighbors, mask).nearest;
@@ -118,7 +119,14 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
   head.insertBefore(pdfBtn, closeBtn);
   el.appendChild(head);
   addFold(el, head, [], { before: closeBtn });   // «−» / «+» перед крестиком
-  el.append(table, foot);
+
+  // Переключатель: у каждого места своя дата (сравнение дат) или общая дата со шкалы времени
+  const modeRow = make('label', 'compare-mode');
+  const ownDates = make('input');
+  ownDates.type = 'checkbox';
+  modeRow.append(ownDates, document.createTextNode(' Each place keeps its own date (compare dates)'));
+  const modeHint = make('div', 'compare-hint');
+  el.append(modeRow, modeHint, table, foot);
   document.body.appendChild(el);
 
   const slots = { A: null, B: null, C: null };
@@ -132,9 +140,14 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
     if (!used.length) return;
     table.replaceChildren();
 
-    const cmp = used.length ? buildComparison({ eph, sites, th, horizons }, used.map(s => slots[s]), { ms, accuracyM: acc }) : null;
+    const own = ownDates.checked;
+    modeHint.textContent = own
+      ? 'Dates: each column uses the date it was saved with. To compare dates: pick a point, Set as A, move the time bar, Set as B.'
+      : 'Dates: all columns use the time bar. Tick the box to give each place its own date.';
+    const places = used.map(s => ({ ...slots[s], ms: own ? slots[s].ms : undefined }));
+    const cmp = buildComparison({ eph, sites, th, horizons }, places, { ms, accuracyM: acc });
     const thead = make('tr');
-    thead.appendChild(make('th', '', Number.isFinite(ms) ? fmtUtc(ms).slice(5) : ''));
+    thead.appendChild(make('th', '', own ? 'own dates' : (Number.isFinite(ms) ? fmtUtc(ms).slice(5) : '')));
     used.forEach((s, i) => {
       const th_ = make('th');
       const color = SLOT_COLORS[s].css;
@@ -144,6 +157,7 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
       dot.style.background = color;
       slotLabel.append(dot, document.createTextNode(`${s}: ${cmp.columns[i].label}`));
       th_.appendChild(slotLabel);
+      if (own && Number.isFinite(slots[s].ms)) th_.appendChild(make('div', 'slot-date', fmtUtc(slots[s].ms)));
       const clear = make('button', 'clear', 'remove');
       clear.setAttribute('aria-label', `Remove place ${s}`);
       clear.addEventListener('click', () => { slots[s] = null; onSlotChange?.(s, null); render(); });
@@ -167,21 +181,27 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
       table.appendChild(tr);
     }
     const terrain = cmp.columns.some(c => c.report.terrain);
-    foot.textContent = `Next ${th.energy.window_days} days from the chosen time, landing accuracy ${acc} m (1σ). ` +
+    foot.textContent = `Next ${th.energy.window_days} days from ${own ? 'each date' : 'the chosen time'}, landing accuracy ${acc} m (1σ). ` +
       (terrain ? 'Terrain horizon used where available.' : 'Flat horizon, no terrain.') +
       ' "Best" is only the better number in that row, not a safety guarantee. Use "Set as A / B / C" in the Sun & Earth panel to add places.';
   }
   closeBtn.addEventListener('click', () => { dismissed = true; render(); });
+  ownDates.addEventListener('change', render);
 
   return {
     setSlot(slot, lat, lon) {
-      slots[slot] = { lat, lon, label: placeLabel(lat, lon, sites) };
+      // То же место уже сохранено под другой буквой, а дата другая -> пользователь сравнивает даты
+      const samePlace = SLOTS.some(s => s !== slot && slots[s] &&
+        Math.abs(slots[s].lat - lat) < 1e-6 && Math.abs(slots[s].lon - lon) < 1e-6 && slots[s].ms !== ms);
+      if (samePlace) ownDates.checked = true;
+      slots[slot] = { lat, lon, label: placeLabel(lat, lon, sites), ms };   // дату запоминаем вместе с местом
       onSlotChange?.(slot, slots[slot]);
       dismissed = false;
       render();
     },
     setTime(newMs) { ms = newMs; render(); },
     setAccuracy(m) { acc = m; render(); },
-    getSlots: () => ({ ...slots }),
+    // Для PDF: при «своих датах» у мест есть ms, иначе дата общая
+    getSlots: () => Object.fromEntries(SLOTS.map(s => [s, slots[s] ? { ...slots[s], ms: ownDates.checked ? slots[s].ms : undefined } : null])),
   };
 }

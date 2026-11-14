@@ -1,0 +1,787 @@
+diff --git a/css/style.css b/css/style.css
+index 9b5e71d..66477c7 100644
+--- a/css/style.css
++++ b/css/style.css
+@@ -61,6 +61,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
+ .compare thead th, .compare tr:first-child th { color: var(--muted); font-weight: 600; }
+ .compare tbody th, .compare tr th:first-child { color: var(--muted); font-weight: 400; white-space: nowrap; }
+ .compare .slot { font-weight: 600; color: var(--text); }
++.compare-mode { display: flex; align-items: center; gap: 6px; margin: 2px 0 2px; font-size: 12px; cursor: pointer; }
++.compare-hint { color: var(--muted); font-size: 11px; margin-bottom: 6px; }
++.compare .slot-date { font-size: 11px; font-weight: 600; color: var(--accent); }
+ .compare .slot-dot { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 50%; vertical-align: middle; }
+ .compare .clear { padding: 0 6px; font-size: 11px; margin-top: 2px; }
+ .compare tr.status-row td { font-weight: 700; }
+diff --git a/css/theme-light.css b/css/theme-light.css
+index a1eb7a0..4ca7fa3 100644
+--- a/css/theme-light.css
++++ b/css/theme-light.css
+@@ -32,7 +32,8 @@ html[data-theme="light"] .astro-panel .status, html[data-theme="light"] .astro-p
+ html[data-theme="light"] .astro-panel .note, html[data-theme="light"] .time-bar .slider-row,
+ html[data-theme="light"] .coords-box .msg, html[data-theme="light"] .site-card .meta,
+ html[data-theme="light"] .site-card .credit, html[data-theme="light"] .view-controls .note,
+-html[data-theme="light"] .compare-note, html[data-theme="light"] .compare th { color: var(--muted) !important; }
++html[data-theme="light"] .compare-note, html[data-theme="light"] .compare th,
++html[data-theme="light"] .compare-hint, html[data-theme="light"] .sky-panel .note { color: var(--muted) !important; }
+ html[data-theme="light"] .astro-panel dd.sub, html[data-theme="light"] .report-card .block .why,
+ html[data-theme="light"] .compare .slot { color: var(--text) !important; }
+ html[data-theme="light"] .report-card .verdict { background: rgba(30, 40, 60, 0.06) !important; }
+@@ -45,6 +46,8 @@ html[data-theme="light"] .view-controls button, html[data-theme="light"] .fold-b
+ html[data-theme="light"] .compare-close, html[data-theme="light"] .compare .clear, html[data-theme="light"] .compare .pdf {
+   background: #dde1e8 !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important;
+ }
++html[data-theme="light"] .astro-panel .sky-btn { background: #dde1e8 !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important; }
++html[data-theme="light"] .astro-panel .why { color: var(--text) !important; }
+ /* у кнопок Set as A/B/C левый край цветной (цвет места) — его не трогаем */
+ html[data-theme="light"] .astro-panel .pins button {
+   background: #dde1e8 !important; color: var(--text) !important;
+diff --git a/data/planned.json b/data/planned.json
+new file mode 100644
+index 0000000..e0baccc
+--- /dev/null
++++ b/data/planned.json
+@@ -0,0 +1,132 @@
++[
++  {
++    "id": "artemis3-peak-near-cabeus-b",
++    "name": "Artemis III region: Peak near Cabeus B",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-haworth",
++    "name": "Artemis III region: Haworth",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-malapert-massif",
++    "name": "Artemis III region: Malapert Massif",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-mons-mouton-plateau",
++    "name": "Artemis III region: Mons Mouton Plateau",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-mons-mouton",
++    "name": "Artemis III region: Mons Mouton",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-nobile-rim-1",
++    "name": "Artemis III region: Nobile Rim 1",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-nobile-rim-2",
++    "name": "Artemis III region: Nobile Rim 2",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-de-gerlache-rim-2",
++    "name": "Artemis III region: de Gerlache Rim 2",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "artemis3-slater-plain",
++    "name": "Artemis III region: Slater Plain",
++    "country": "USA",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "candidate landing region (2024 list)",
++    "source": "https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/",
++    "coords_source": "TODO: official coordinates (NASA / IAU Gazetteer), then fill lat and lon",
++    "description": "One of nine candidate regions NASA named in October 2024 for the Artemis III crewed landing near the south pole. Region, not an exact landing point."
++  },
++  {
++    "id": "change7",
++    "name": "Chang'e 7 (target area)",
++    "country": "China",
++    "type": "planned",
++    "lat": null,
++    "lon": null,
++    "date": null,
++    "status": "planned robotic mission, Shackleton rim area",
++    "source": "https://www.planetary.org/space-missions/change-7",
++    "coords_source": "TODO: official coordinates (CNSA / published paper), then fill lat and lon",
++    "description": "Chinese robotic mission to the south pole, targeting the area near the rim of Shackleton crater to search for water ice."
++  }
++]
+diff --git a/js/astro-panel.js b/js/astro-panel.js
+index f4b18a9..0325e54 100644
+--- a/js/astro-panel.js
++++ b/js/astro-panel.js
+@@ -6,6 +6,7 @@ import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astr
+ import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
+ import { addFold } from './panel-fold.js';
+ import { SLOT_COLORS } from './slot-colors.js';
++import { whyItMatters } from './why.js';
+ 
+ const SUN_COLOR = '#f8f4e3';
+ const EARTH_COLOR = '#7aa2ff';
+@@ -26,7 +27,8 @@ function make(tag, className, text) {
+ }
+ 
+ // onPin(slot, lat, lon) вызывается кнопками «Set as A / B» (сравнение мест)
+-export function createAstroPanel(eph, { onPin, getMask } = {}) {
++// onSky() — кнопка «Sky view» (окно «Небо над точкой»)
++export function createAstroPanel(eph, { onPin, getMask, onSky } = {}) {
+   const style = document.createElement('style');
+   style.textContent = `
+     .astro-panel {
+@@ -57,6 +59,10 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
+     .astro-panel canvas { display: block; margin-top: 4px; }
+     .astro-panel .legend { display: flex; gap: 12px; color: #9fb0c8; font-size: 11px; margin-top: 4px; }
+     .astro-panel .note { color: #7f8fa6; font-size: 11px; margin-top: 6px; }
++    .astro-panel .sky-btn { width: 100%; margin: 0 0 8px; padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
++      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
++    .astro-panel .why { margin-top: 8px; padding: 6px 8px; border-left: 3px solid #4cc9f0; border-radius: 4px;
++      background: rgba(76,201,240,.08); font-size: 12px; }
+   `;
+   document.head.appendChild(style);
+ 
+@@ -80,6 +86,10 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
+     pinRow.appendChild(button);
+   }
+   el.appendChild(pinRow);
++  const skyBtn = make('button', 'sky-btn', 'Sky view: horizon, Sun and Earth');
++  skyBtn.title = 'Show the horizon around this point and where the Sun and Earth are';
++  skyBtn.addEventListener('click', () => onSky?.());
++  el.appendChild(skyBtn);
+ 
+   const status = make('p', 'status');
+   el.appendChild(status);
+@@ -115,6 +125,9 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
+   el.appendChild(legend);
+   const noteEl = make('div', 'note');
+   el.appendChild(noteEl);
++  const whyEl = make('div', 'why');
++  whyEl.hidden = true;
++  el.appendChild(whyEl);
+   addFold(el, head, [timeLine]);   // кнопка «−» / «+»: в свёрнутом виде остаются заголовок и время
+   document.body.appendChild(el);
+ 
+@@ -219,7 +232,13 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
+     earthEventRow.dt.textContent = earthX ? (earthX.rising ? 'Next Earthrise' : 'Next Earthset') : 'Earthrise / Earthset';
+     setEvent(earthEventRow, earthTimeRow, earthX, ms);
+ 
+-    drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
++    const series = elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60);
++    drawChart(series);
++    // «Почему это важно»: сколько максимум поднимается Солнце
++    const sunMax = Math.max(...series.sun.filter(Number.isFinite));
++    const why = whyItMatters(lat, sunMax);
++    whyEl.hidden = !why;
++    whyEl.textContent = why ?? '';
+   }
+ 
+   render();
+diff --git a/js/compare.js b/js/compare.js
+index 9269bc8..c625812 100644
+--- a/js/compare.js
++++ b/js/compare.js
+@@ -38,10 +38,11 @@ function bestIndexes(values, better) {
+   return known.filter(x => x.v === target).map(x => x.i);
+ }
+ 
+-// ctx: { eph, sites, th, horizons }; places: [{lat, lon, label?}]; opts: { ms, accuracyM }
++// ctx: { eph, sites, th, horizons }; places: [{lat, lon, label?, ms?}]; opts: { ms, accuracyM }
++// У места может быть своя дата (p.ms): так сравнивают одно место в разные даты. Без неё берётся общая ms.
+ // Вернёт { columns: [{label, report}], rows: [{label, kind, cells: [{text, status?, value}], best: [index]}] }
+ export function buildComparison(ctx, places, { ms, accuracyM }) {
+-  const reports = places.map(p => buildReport(ctx, p.lat, p.lon, { ms, accuracyM }));
++  const reports = places.map(p => buildReport(ctx, p.lat, p.lon, { ms: Number.isFinite(p.ms) ? p.ms : ms, accuracyM }));
+   const nearest = places.map(p => {
+     const mask = horizonFor(ctx.horizons, p.lat, p.lon);
+     return assessNeighbors(p.lat, p.lon, ctx.sites, accuracyM, ctx.th.neighbors, mask).nearest;
+@@ -118,7 +119,14 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
+   head.insertBefore(pdfBtn, closeBtn);
+   el.appendChild(head);
+   addFold(el, head, [], { before: closeBtn });   // «−» / «+» перед крестиком
+-  el.append(table, foot);
++
++  // Переключатель: у каждого места своя дата (сравнение дат) или общая дата со шкалы времени
++  const modeRow = make('label', 'compare-mode');
++  const ownDates = make('input');
++  ownDates.type = 'checkbox';
++  modeRow.append(ownDates, document.createTextNode(' Each place keeps its own date (compare dates)'));
++  const modeHint = make('div', 'compare-hint');
++  el.append(modeRow, modeHint, table, foot);
+   document.body.appendChild(el);
+ 
+   const slots = { A: null, B: null, C: null };
+@@ -132,9 +140,14 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
+     if (!used.length) return;
+     table.replaceChildren();
+ 
+-    const cmp = used.length ? buildComparison({ eph, sites, th, horizons }, used.map(s => slots[s]), { ms, accuracyM: acc }) : null;
++    const own = ownDates.checked;
++    modeHint.textContent = own
++      ? 'Dates: each column uses the date it was saved with. To compare dates: pick a point, Set as A, move the time bar, Set as B.'
++      : 'Dates: all columns use the time bar. Tick the box to give each place its own date.';
++    const places = used.map(s => ({ ...slots[s], ms: own ? slots[s].ms : undefined }));
++    const cmp = buildComparison({ eph, sites, th, horizons }, places, { ms, accuracyM: acc });
+     const thead = make('tr');
+-    thead.appendChild(make('th', '', Number.isFinite(ms) ? fmtUtc(ms).slice(5) : ''));
++    thead.appendChild(make('th', '', own ? 'own dates' : (Number.isFinite(ms) ? fmtUtc(ms).slice(5) : '')));
+     used.forEach((s, i) => {
+       const th_ = make('th');
+       const color = SLOT_COLORS[s].css;
+@@ -144,6 +157,7 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
+       dot.style.background = color;
+       slotLabel.append(dot, document.createTextNode(`${s}: ${cmp.columns[i].label}`));
+       th_.appendChild(slotLabel);
++      if (own && Number.isFinite(slots[s].ms)) th_.appendChild(make('div', 'slot-date', fmtUtc(slots[s].ms)));
+       const clear = make('button', 'clear', 'remove');
+       clear.setAttribute('aria-label', `Remove place ${s}`);
+       clear.addEventListener('click', () => { slots[s] = null; onSlotChange?.(s, null); render(); });
+@@ -167,21 +181,27 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM, onSl
+       table.appendChild(tr);
+     }
+     const terrain = cmp.columns.some(c => c.report.terrain);
+-    foot.textContent = `Next ${th.energy.window_days} days from the chosen time, landing accuracy ${acc} m (1σ). ` +
++    foot.textContent = `Next ${th.energy.window_days} days from ${own ? 'each date' : 'the chosen time'}, landing accuracy ${acc} m (1σ). ` +
+       (terrain ? 'Terrain horizon used where available.' : 'Flat horizon, no terrain.') +
+       ' "Best" is only the better number in that row, not a safety guarantee. Use "Set as A / B / C" in the Sun & Earth panel to add places.';
+   }
+   closeBtn.addEventListener('click', () => { dismissed = true; render(); });
++  ownDates.addEventListener('change', render);
+ 
+   return {
+     setSlot(slot, lat, lon) {
+-      slots[slot] = { lat, lon, label: placeLabel(lat, lon, sites) };
++      // То же место уже сохранено под другой буквой, а дата другая -> пользователь сравнивает даты
++      const samePlace = SLOTS.some(s => s !== slot && slots[s] &&
++        Math.abs(slots[s].lat - lat) < 1e-6 && Math.abs(slots[s].lon - lon) < 1e-6 && slots[s].ms !== ms);
++      if (samePlace) ownDates.checked = true;
++      slots[slot] = { lat, lon, label: placeLabel(lat, lon, sites), ms };   // дату запоминаем вместе с местом
+       onSlotChange?.(slot, slots[slot]);
+       dismissed = false;
+       render();
+     },
+     setTime(newMs) { ms = newMs; render(); },
+     setAccuracy(m) { acc = m; render(); },
+-    getSlots: () => ({ ...slots }),
++    // Для PDF: при «своих датах» у мест есть ms, иначе дата общая
++    getSlots: () => Object.fromEntries(SLOTS.map(s => [s, slots[s] ? { ...slots[s], ms: ownDates.checked ? slots[s].ms : undefined } : null])),
+   };
+ }
+diff --git a/js/main.js b/js/main.js
+index c1e68e5..0e0e6fe 100644
+--- a/js/main.js
++++ b/js/main.js
+@@ -15,6 +15,7 @@ import { createViewControls } from './view-controls.js';
+ import { createStartScreen } from './start-screen.js';
+ import { createTopTools, getTheme } from './theme.js';
+ import { askTour, runTour } from './tour.js';
++import { createSkyPanel } from './sky-panel.js';
+ 
+ const url = path => new URL(path, import.meta.url);
+ 
+@@ -32,6 +33,8 @@ window.addEventListener('themechange', e => setSceneTheme(e.detail));
+ let sites = [];
+ try {
+   sites = await loadSites(url('../data/sites.json'));
++  // Будущие цели (тип planned): места без координат пропускаются, пока их не заполнили
++  try { sites = sites.concat(await loadSites(url('../data/planned.json'))); } catch (error) { console.warn(error.message); }
+ } catch (error) {
+   console.error(error);   // сайт всё равно покажет Луну, просто без меток
+ }
+@@ -77,9 +80,11 @@ const compare = th ? createCompare({
+   },
+   onPdf: () => downloadPdf(),
+ }) : null;
++const sky = eph ? createSkyPanel(eph, { getMask: (lat, lon) => horizonFor(horizons, lat, lon) }) : null;   // «Небо над точкой»
+ const astro = eph ? createAstroPanel(eph, {
+   onPin: (slot, lat, lon) => compare?.setSlot(slot, lat, lon),
+   getMask: (lat, lon) => horizonFor(horizons, lat, lon),
++  onSky: () => sky?.toggle(),
+ }) : null;
+ 
+ // Полный отчёт для выбранной точки; возвращает цвет кольца
+@@ -110,6 +115,7 @@ if (eph) {
+         refresh();
+         astro?.setTime(ms);
+         compare?.setTime(ms);
++        sky?.setTime(ms);
+         lastUpdate = now;
+       }
+     },
+@@ -122,6 +128,7 @@ picker = initPicker({
+   onPoint: (lat, lon) => {
+     point = { lat, lon };
+     astro?.setPoint(lat, lon);
++    sky?.setPoint(lat, lon);
+     return refresh();
+   },
+   onSite: site => (site ? card.show(site) : card.hide()),
+diff --git a/js/pdf-report.js b/js/pdf-report.js
+index 4d385f8..d1d5b26 100644
+--- a/js/pdf-report.js
++++ b/js/pdf-report.js
+@@ -8,6 +8,7 @@ import { horizonFor } from './horizon.js';
+ import { buildComparison } from './compare.js';
+ import { fmtUtc, fmtDuration, fmtDeg, fmtDistance, fmtHours } from './format.js';
+ import { SLOT_COLORS } from './slot-colors.js';
++import { whyItMatters } from './why.js';
+ 
+ const NASA_URL = 'https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf';
+ const CHART_DAYS = 30;
+@@ -48,7 +49,8 @@ function latLonText(lat, lon) {
+ 
+ // --- График (рисуем на скрытом canvas, вставляем картинкой) ---
+ // lines: [{ values, color, label, dash? }]
+-function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
++// relative: подписи «+5 d» (дни от начала) вместо дат — когда у мест разные даты
++function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560, relative = false } = {}) {
+   const c = document.createElement('canvas');
+   c.width = wPx; c.height = hPx;
+   const g = c.getContext('2d');
+@@ -59,7 +61,10 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
+   if (n < 2) return c.toDataURL('image/jpeg', 0.92);
+   const t0 = timesMs[0], t1 = timesMs[n - 1];
+   const x = t => padL + ((t - t0) / (t1 - t0)) * (wPx - padL - padR);
+-  const y = e => padT + ((90 - e) / 180) * (hPx - padT - padB);
++  // масштаб по высоте: у полюса Солнце и Земля держатся у горизонта — тогда берём ±10° или ±20°, а не ±90°
++  const maxAbs = Math.max(5, ...lines.flatMap(l => l.values.filter(Number.isFinite).map(Math.abs)));
++  const lim = [10, 20, 45, 90].find(v => maxAbs <= v) ?? 90;
++  const y = e => padT + ((lim - Math.max(-lim, Math.min(lim, e))) / (2 * lim)) * (hPx - padT - padB);
+ 
+   g.font = '600 30px Helvetica, Arial, sans-serif';
+   g.fillStyle = '#1d2430';
+@@ -68,7 +73,7 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
+   g.font = '24px Helvetica, Arial, sans-serif';
+   g.textAlign = 'right';
+   g.textBaseline = 'middle';
+-  for (const e of [90, 45, 0, -45, -90]) {
++  for (const e of [lim, lim / 2, 0, -lim / 2, -lim]) {
+     g.strokeStyle = e === 0 ? '#5f6a7a' : '#e1e5ea';
+     g.lineWidth = e === 0 ? 2.5 : 1.5;
+     g.beginPath(); g.moveTo(padL, y(e)); g.lineTo(wPx - padR, y(e)); g.stroke();
+@@ -85,7 +90,7 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
+     g.beginPath(); g.moveTo(x(t), padT); g.lineTo(x(t), hPx - padB); g.stroke();
+     g.fillStyle = '#5f6a7a';
+     g.textAlign = x(t) > wPx - padR - 40 ? 'right' : 'center';   // последняя дата не обрезается
+-    g.fillText(fmtUtc(t).slice(5, 10), Math.min(x(t), wPx - padR), hPx - padB + 12);
++    g.fillText(relative ? `+${Math.round((t - t0) / day)} d` : fmtUtc(t).slice(5, 10), Math.min(x(t), wPx - padR), hPx - padB + 12);
+   }
+   // линии
+   for (const l of lines) {
+@@ -313,7 +318,9 @@ function sunEarthSection(w, ctx, lat, lon, ms, mask) {
+   const h = CW * 560 / 1700;
+   w.ensure(h + 3);
+   doc.addImage(img, 'JPEG', M, w.y, CW, h);
+-  w.y += h + 4;
++  w.y += h + 3;
++  const why = whyItMatters(lat, Math.max(...series.sun.filter(Number.isFinite)));
++  if (why) w.text(why, { size: 9, color: ACCENT, gap: 3 });
+ }
+ 
+ function neighborsSection(w, ctx, lat, lon, accuracyM, mask) {
+@@ -349,8 +356,10 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
+   const { doc, M, CW } = w;
+   const cmp = buildComparison(ctx, places, { ms, accuracyM });
+   w.newPage();
+-  w.heading(`Comparison of ${places.length} places`);
+-  w.text(`Same time and landing accuracy for every place. "best" marks only the better number in a row, not a safety guarantee.`,
++  const ownDates = places.some(p => Number.isFinite(p.ms));
++  w.heading(ownDates ? `Comparison of ${places.length} place / date options` : `Comparison of ${places.length} places`);
++  w.text((ownDates ? 'Each column has its own date (shown under its name); the same landing accuracy for all. '
++    : 'Same time and landing accuracy for every place. ') + '"best" marks only the better number in a row, not a safety guarantee.',
+     { size: 9, color: MUTED, gap: 3 });
+ 
+   const labelW = 58;
+@@ -368,7 +377,7 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
+     doc.text(clean(`Place ${p.slot}`), x + 7, w.y + 4.4, { baseline: 'top' });
+     w.font(8, false, MUTED);
+     const label = w.lines(cmp.columns[i].label, 8, colW - 6).slice(0, 2);
+-    doc.text(label, x + 3, w.y + 9.3, { baseline: 'top' });
++    doc.text(ownDates && Number.isFinite(p.ms) ? [fmtUtc(p.ms), label[0]] : label, x + 3, w.y + 9.3, { baseline: 'top' });
+   });
+   w.y += headH + 2;
+   cmp.rows.forEach((row, r) => {
+@@ -400,13 +409,13 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
+ 
+   // Графики: Солнце и Земля для всех мест (цвета мест)
+   if (ctx.eph && Number.isFinite(ms)) {
+-    const all = places.map(p => elevationSeries(ctx.eph, p.lat, p.lon, ms, CHART_DAYS * 24, 60));
++    const all = places.map(p => elevationSeries(ctx.eph, p.lat, p.lon, Number.isFinite(p.ms) ? p.ms : ms, CHART_DAYS * 24, 60));
+     const times = all[0].timesMs;
+     const h = CW * 560 / 1700;
+     for (const [field, title] of [['sun', 'Sun elevation, next 30 days'], ['earth', 'Earth elevation, next 30 days (Earth in view = above 0°)']]) {
+       const img = chartImage(times, places.map((p, i) => ({
+         values: all[i][field], color: SLOT_COLORS[p.slot].css, label: `Place ${p.slot}`, dash: [null, [14, 10], [3, 9]][i],
+-      })), { title });
++      })), { title: ownDates ? `${title} (days after each date)` : title, relative: ownDates });
+       w.ensure(h + 3);
+       doc.addImage(img, 'JPEG', M, w.y, CW, h);
+       w.y += h + 4;
+diff --git a/js/picker.js b/js/picker.js
+index ebef216..49d25f1 100644
+--- a/js/picker.js
++++ b/js/picker.js
+@@ -56,13 +56,16 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
+   function makeSlotMarker(slot) {
+     const { hex, css } = SLOT_COLORS[slot];
+     const group = new THREE.Group();
+-    const dark = new THREE.Mesh(new THREE.RingGeometry(0.034, 0.05, 48),
++    // A, B, C — кольца разного размера и буквы в разных местах: если это одно место (сравнение дат), видно все три
++    const k = { A: 0, B: 1, C: 2 }[slot] ?? 0;
++    const r0 = 0.038 + k * 0.014;
++    const dark = new THREE.Mesh(new THREE.RingGeometry(r0 - 0.004, r0 + 0.012, 48),
+       new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide, transparent: true, opacity: 0.55 }));
+-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.038, 0.046, 48),
++    const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r0 + 0.008, 48),
+       new THREE.MeshBasicMaterial({ color: hex, side: THREE.DoubleSide }));
+     ring.position.z = 0.0008;   // чуть выше тёмной подложки
+     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: letterTexture(slot, css), transparent: true, depthWrite: false }));
+-    label.center.set(0.5, -0.9);   // буква над кольцом
++    label.center.set([0.5, 1.6, -0.6][k], -0.5 - (r0 + 0.022) / 0.11);   // буква над кольцом: A по центру, B левее, C правее
+     label.scale.setScalar(0.11);
+     label.position.z = 0.0016;
+     group.add(dark, ring, label);
+diff --git a/js/safety.js b/js/safety.js
+index 082c731..93101ee 100644
+--- a/js/safety.js
++++ b/js/safety.js
+@@ -44,6 +44,7 @@ export function keepOutKm(site, accuracyM, th) {
+ // mask — маска горизонта выбранной точки (или null: рельефа нет)
+ export function assessNeighbors(lat, lon, sites, accuracyM, th, mask = null) {
+   const neighbors = sites
++    .filter(site => site.type !== 'planned')   // будущие цели — ещё не аппараты на Луне, им не мешаем
+     .map(site => {
+       const distanceKm = haversineKm(lat, lon, site.lat, site.lon, th.moon_radius_km);
+       const keep = keepOutKm(site, accuracyM, th);
+diff --git a/js/sites.js b/js/sites.js
+index a2ab99b..29f2caf 100644
+--- a/js/sites.js
++++ b/js/sites.js
+@@ -22,7 +22,7 @@ export async function loadSites(url) {
+   for (const site of all) {
+     if (site.name && Number.isFinite(site.lat) && Number.isFinite(site.lon)) {
+       good.push(site);
+-    } else {
++    } else if (site.type !== 'planned') {   // у будущих целей координаты могут быть ещё не заполнены
+       console.warn('Skipped bad record in sites.json:', site);
+     }
+   }
+diff --git a/js/sky-panel.js b/js/sky-panel.js
+new file mode 100644
+index 0000000..30c88fc
+--- /dev/null
++++ b/js/sky-panel.js
+@@ -0,0 +1,207 @@
++// Окно «Небо над точкой»: развёрнутый горизонт (азимут 0–360°, слева направо: С, В, Ю, З),
++// линия рельефа (если есть маска LOLA) или ровный горизонт, где сейчас Солнце и Земля,
++// и их путь на ближайшие 15 суток (точки — каждые земные сутки). Не зависит от three.js.
++import { directionAt, elevationDeg, azimuthDeg } from './astro.js';
++import { maskElevationAt } from './horizon.js';
++import { fmtUtc, fmtDeg } from './format.js';
++import { addFold } from './panel-fold.js';
++
++const PATH_DAYS = 15;
++const STEP_H = 2;
++
++function make(tag, className, text) {
++  const el = document.createElement(tag);
++  if (className) el.className = className;
++  if (text !== undefined) el.textContent = text;
++  return el;
++}
++
++function palette() {
++  return document.documentElement.dataset.theme === 'light'
++    ? { sun: '#c77d00', earth: '#2f5fd0', text: '#566173', grid: 'rgba(0,0,0,0.10)', zero: 'rgba(0,0,0,0.45)',
++        ground: 'rgba(120, 110, 95, 0.45)', groundLine: '#6b5f4e', sky: 'rgba(0,0,0,0.03)' }
++    : { sun: '#ffd34d', earth: '#7aa2ff', text: '#9fb0c8', grid: 'rgba(255,255,255,0.10)', zero: 'rgba(255,255,255,0.45)',
++        ground: 'rgba(150, 140, 125, 0.40)', groundLine: '#c9bba5', sky: 'rgba(255,255,255,0.03)' };
++}
++
++// getMask(lat, lon) — маска горизонта или null
++export function createSkyPanel(eph, { getMask } = {}) {
++  const style = document.createElement('style');
++  style.textContent = `
++    .sky-panel {
++      position: fixed; top: 104px; left: 50%; transform: translate(-50%, -8px); z-index: 30;
++      width: clamp(420px, calc(100vw - 780px), 600px); box-sizing: border-box; padding: 10px 12px 10px;
++      background: rgba(10, 14, 22, 0.94); color: #e8edf5;
++      border: 1px solid rgba(255,255,255,.18); border-radius: 12px; font: 13px/1.45 system-ui, sans-serif;
++      opacity: 0; pointer-events: none; transition: opacity .3s ease, transform .3s ease;
++    }
++    .sky-panel.open { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
++    .sky-panel .head { display: flex; align-items: center; gap: 6px; }
++    .sky-panel h3 { margin: 0; font-size: 15px; margin-right: auto; }
++    .sky-panel .close { width: 28px; height: 28px; padding: 0; cursor: pointer; color: inherit; background: #1d2740;
++      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: 600 14px system-ui, sans-serif; }
++    .sky-panel canvas { display: block; width: 100%; margin-top: 6px; }
++    .sky-panel .now { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; font-size: 12px; }
++    .sky-panel .note { color: #7f8fa6; font-size: 11px; margin-top: 4px; }
++    @media (max-width: 1100px) { .sky-panel { width: calc(100vw - 32px); top: auto; bottom: 16px; } }
++    html[data-theme="light"] .sky-panel { background: rgba(238, 240, 244, 0.95); color: #1d2430; border-color: rgba(30,40,60,.18); }
++    html[data-theme="light"] .sky-panel .close { background: #dde1e8; border-color: rgba(30,40,60,.25); }
++  `;
++  document.head.appendChild(style);
++
++  const el = make('div', 'sky-panel');
++  el.setAttribute('role', 'dialog');
++  el.setAttribute('aria-label', 'Sky above this point');
++  const head = make('div', 'head');
++  head.appendChild(make('h3', '', 'Sky above this point'));
++  const close = make('button', 'close', '×');
++  close.setAttribute('aria-label', 'Close the sky view');
++  head.appendChild(close);
++  const canvas = make('canvas');
++  canvas.setAttribute('role', 'img');
++  const nowLine = make('div', 'now');
++  const sunNow = make('span');
++  const earthNow = make('span');
++  nowLine.append(sunNow, earthNow);
++  const note = make('div', 'note');
++  el.append(head, canvas, nowLine, note);
++  addFold(el, head, [], { before: close });
++  document.body.appendChild(el);
++
++  let lat = null, lon = null, ms = NaN, isOpen = false;
++
++  function sample(body, t) {
++    const dir = directionAt(eph, body, t);
++    return dir ? { az: azimuthDeg(dir, lat, lon), el: elevationDeg(dir, lat, lon) } : null;
++  }
++
++  function draw() {
++    if (!isOpen || lat === null) return;
++    const mask = getMask?.(lat, lon) ?? null;
++    const c = palette();
++    const W = canvas.clientWidth || 560;
++    const H = 230;
++    const dpr = window.devicePixelRatio || 1;
++    canvas.width = W * dpr; canvas.height = H * dpr;
++    canvas.style.height = H + 'px';
++    const g = canvas.getContext('2d');
++    g.setTransform(dpr, 0, 0, dpr, 0, 0);
++    g.clearRect(0, 0, W, H);
++
++    // Пути Солнца и Земли на PATH_DAYS суток вперёд
++    const paths = { sun: [], earth: [] };
++    for (let h = 0; h <= PATH_DAYS * 24; h += STEP_H) {
++      const t = ms + h * 3600e3;
++      for (const body of ['sun', 'earth']) {
++        const p = sample(body, t);
++        if (p) paths[body].push({ ...p, h });
++      }
++    }
++    const now = { sun: sample('sun', ms), earth: sample('earth', ms) };
++
++    // Масштаб по высоте: от -10° до чуть выше самого высокого (Солнце, Земля, рельеф), не больше 90°
++    const terrainMax = mask ? Math.max(...mask.values) : 0;
++    const top = Math.min(90, Math.max(10, terrainMax + 3,
++      ...paths.sun.map(p => p.el + 3), ...paths.earth.map(p => p.el + 3)));
++    const bottom = -10;
++    const padL = 34, padR = 8, padT = 8, padB = 22;
++    const x = az => padL + (az / 360) * (W - padL - padR);
++    const y = e => padT + ((top - Math.max(bottom, Math.min(top, e))) / (top - bottom)) * (H - padT - padB);
++
++    g.fillStyle = c.sky;
++    g.fillRect(padL, padT, W - padL - padR, H - padT - padB);
++    // сетка: высоты и стороны света
++    g.font = '10px system-ui, sans-serif';
++    g.fillStyle = c.text;
++    g.textAlign = 'right'; g.textBaseline = 'middle';
++    const stepE = top > 45 ? 30 : top > 20 ? 10 : 5;
++    for (let e = Math.ceil(bottom / stepE) * stepE; e <= top; e += stepE) {
++      g.strokeStyle = e === 0 ? c.zero : c.grid;
++      g.lineWidth = 1;
++      g.beginPath(); g.moveTo(padL, y(e)); g.lineTo(W - padR, y(e)); g.stroke();
++      g.fillText(`${e}°`, padL - 4, y(e));
++    }
++    g.textAlign = 'center'; g.textBaseline = 'top';
++    [['N', 0], ['NE', 45], ['E', 90], ['SE', 135], ['S', 180], ['SW', 225], ['W', 270], ['NW', 315], ['N', 360]].forEach(([name, az]) => {
++      g.strokeStyle = c.grid;
++      g.beginPath(); g.moveTo(x(az), padT); g.lineTo(x(az), H - padB); g.stroke();
++      g.fillText(name, Math.min(Math.max(x(az), padL + 6), W - padR - 6), H - padB + 5);
++    });
++
++    // земля: рельеф или ровный горизонт
++    g.beginPath();
++    g.moveTo(x(0), y(bottom));
++    for (let az = 0; az <= 360; az += 1) g.lineTo(x(az), y(mask ? maskElevationAt(mask, az) : 0));
++    g.lineTo(x(360), y(bottom));
++    g.closePath();
++    g.fillStyle = c.ground;
++    g.fill();
++    g.strokeStyle = c.groundLine;
++    g.lineWidth = 1.5;
++    g.beginPath();
++    for (let az = 0; az <= 360; az += 1) {
++      const yy = y(mask ? maskElevationAt(mask, az) : 0);
++      if (az === 0) g.moveTo(x(az), yy); else g.lineTo(x(az), yy);
++    }
++    g.stroke();
++
++    // пути: линия (разрываем при переходе через север 360 -> 0) и точки каждые сутки
++    function path(points, color) {
++      g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 1.6; g.globalAlpha = 0.85;
++      g.beginPath();
++      let prev = null;
++      for (const p of points) {
++        if (p.el < bottom) { prev = null; continue; }
++        if (prev && Math.abs(p.az - prev.az) < 180) g.lineTo(x(p.az), y(p.el));
++        else g.moveTo(x(p.az), y(p.el));
++        prev = p;
++      }
++      g.stroke();
++      for (const p of points) {
++        if (p.h % 24 === 0 && p.el >= bottom) { g.beginPath(); g.arc(x(p.az), y(p.el), 2.2, 0, Math.PI * 2); g.fill(); }
++      }
++      g.globalAlpha = 1;
++    }
++    path(paths.sun, c.sun);
++    path(paths.earth, c.earth);
++
++    // сейчас: большие кружки с подписью
++    for (const [body, label] of [['sun', 'Sun'], ['earth', 'Earth']]) {
++      const p = now[body];
++      if (!p) continue;
++      const yy = y(p.el);
++      g.fillStyle = c[body];
++      g.strokeStyle = document.documentElement.dataset.theme === 'light' ? '#fff' : '#0b0f17';
++      g.lineWidth = 2;
++      g.beginPath(); g.arc(x(p.az), yy, 6.5, 0, Math.PI * 2); g.fill(); g.stroke();
++      g.font = '600 11px system-ui, sans-serif';
++      g.textAlign = 'center'; g.textBaseline = 'bottom';
++      g.fillText(p.el < bottom ? `${label} ↓` : label, x(p.az), yy - 8);
++    }
++
++    const above = (p, body) => {
++      if (!p) return '–';
++      const limit = mask ? maskElevationAt(mask, p.az) : 0;
++      return `${fmtDeg(p.el)} at ${Math.round(p.az)}° · ${p.el > limit ? 'above' : 'below'} the ${mask ? 'terrain' : 'horizon'}`;
++    };
++    sunNow.textContent = `☀ Sun: ${above(now.sun, 'sun')}`;
++    earthNow.textContent = `● Earth: ${above(now.earth, 'earth')}`;
++    sunNow.style.color = c.sun;
++    earthNow.style.color = c.earth;
++    canvas.setAttribute('aria-label', `Horizon view. Sun ${above(now.sun)}. Earth ${above(now.earth)}.`);
++    note.textContent = `${fmtUtc(ms)}. Lines: paths for the next ${PATH_DAYS} days, dots = every Earth day. ` +
++      (mask ? 'Brown area: real terrain horizon from LOLA.' : 'Flat horizon: no terrain data for this point.') +
++      ' Azimuth is measured from north, clockwise.';
++  }
++
++  close.addEventListener('click', () => { isOpen = false; el.classList.remove('open'); });
++  window.addEventListener('themechange', draw);
++  window.addEventListener('resize', draw);
++
++  return {
++    open() { isOpen = true; el.classList.add('open'); draw(); },
++    toggle() { if (isOpen) close.click(); else this.open(); },
++    setPoint(newLat, newLon) { lat = newLat; lon = newLon; draw(); },
++    setTime(newMs) { ms = newMs; draw(); },
++  };
++}
+diff --git a/js/tour.js b/js/tour.js
+index 478122c..9dbfc0b 100644
+--- a/js/tour.js
++++ b/js/tour.js
+@@ -4,7 +4,7 @@
+ 
+ const STEPS = [
+   { target: 'moon', title: 'The Moon in 3D',
+-    text: 'Drag to turn the Moon, scroll to zoom. Coloured dots are real sites: blue = historic landings, purple = recent landings, pink = impacts.' },
++    text: 'Drag to turn the Moon, scroll to zoom. Coloured dots are real sites: blue = historic landings, purple = recent landings, pink = impacts, grey = future targets.' },
+   { target: '.coords-box', title: 'Find a place',
+     text: 'Type coordinates (for example -85.4, 31.2) or a site name (for example Apollo 11) and press Go.' },
+   { target: '.time-bar', title: 'Choose a date',
+@@ -18,7 +18,7 @@ const STEPS = [
+   { target: ['.astro-panel canvas', '.astro-panel .legend'], title: 'The next 30 days',
+     text: 'Yellow line: the Sun. Blue line: Earth. Above 0° means above the horizon: light for solar panels, and a direct radio link.' },
+   { target: '.astro-panel .pins', title: 'Compare places',
+-    text: 'Save up to three places as A, B and C. They get coloured rings on the Moon and appear side by side in a comparison table.' },
++    text: 'Save up to three places as A, B and C, or one place at different dates. They get coloured rings and appear side by side in a table. "Sky view" shows the horizon with the Sun and Earth.' },
+   { target: '.view-controls', title: 'Light and view',
+     text: 'Real light shows the phase, Full light lights the whole Moon, View from Earth shows the Moon as we see it.' },
+   { target: '.report-card .actions', title: 'Rules and PDF',
+diff --git a/js/why.js b/js/why.js
+new file mode 100644
+index 0000000..16e2396
+--- /dev/null
++++ b/js/why.js
+@@ -0,0 +1,13 @@
++// Подсказка «почему маленькие изменения так важны». Не зависит от three.js.
++// sunMaxDeg — самая большая высота Солнца за ближайшие дни (градусы). Возвращает текст или null.
++export function whyItMatters(lat, sunMaxDeg) {
++  if (!Number.isFinite(sunMaxDeg)) return null;
++  const top = `${sunMaxDeg.toFixed(1)}°`;
++  if (Math.abs(lat) >= 75 || sunMaxDeg < 15) {
++    return `Why small changes matter here: in the next 30 days the Sun climbs no higher than ${top}. ` +
++      'A hill only a few degrees high, a landing a few kilometres away or a day later can switch sunlight ' +
++      '(and the direct view of Earth) on or off. Near the poles every degree counts.';
++  }
++  return `At this latitude the Sun climbs up to ${top}, so day and night are long and regular (about 14 Earth days each). ` +
++    'Near the poles the Sun stays low and small changes of place or date matter much more.';
++}

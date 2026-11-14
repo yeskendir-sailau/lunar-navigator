@@ -32,7 +32,8 @@ html[data-theme="light"] .astro-panel .status, html[data-theme="light"] .astro-p
 html[data-theme="light"] .astro-panel .note, html[data-theme="light"] .time-bar .slider-row,
 html[data-theme="light"] .coords-box .msg, html[data-theme="light"] .site-card .meta,
 html[data-theme="light"] .site-card .credit, html[data-theme="light"] .view-controls .note,
-html[data-theme="light"] .compare-note, html[data-theme="light"] .compare th { color: var(--muted) !important; }
+html[data-theme="light"] .compare-note, html[data-theme="light"] .compare th,
+html[data-theme="light"] .compare-hint, html[data-theme="light"] .sky-panel .note { color: var(--muted) !important; }
 html[data-theme="light"] .astro-panel dd.sub, html[data-theme="light"] .report-card .block .why,
 html[data-theme="light"] .compare .slot { color: var(--text) !important; }
 html[data-theme="light"] .report-card .verdict { background: rgba(30, 40, 60, 0.06) !important; }
@@ -45,6 +46,8 @@ html[data-theme="light"] .view-controls button, html[data-theme="light"] .fold-b
 html[data-theme="light"] .compare-close, html[data-theme="light"] .compare .clear, html[data-theme="light"] .compare .pdf {
   background: #dde1e8 !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important;
 }
+html[data-theme="light"] .astro-panel .sky-btn { background: #dde1e8 !important; color: var(--text) !important; border-color: rgba(30, 40, 60, 0.25) !important; }
+html[data-theme="light"] .astro-panel .why { color: var(--text) !important; }
 /* у кнопок Set as A/B/C левый край цветной (цвет места) — его не трогаем */
 html[data-theme="light"] .astro-panel .pins button {
   background: #dde1e8 !important; color: var(--text) !important;

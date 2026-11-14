@@ -4,7 +4,7 @@
 
 const STEPS = [
   { target: 'moon', title: 'The Moon in 3D',
-    text: 'Drag to turn the Moon, scroll to zoom. Coloured dots are real sites: blue = historic landings, purple = recent landings, pink = impacts.' },
+    text: 'Drag to turn the Moon, scroll to zoom. Coloured dots are real sites: blue = historic landings, purple = recent landings, pink = impacts, grey = future targets.' },
   { target: '.coords-box', title: 'Find a place',
     text: 'Type coordinates (for example -85.4, 31.2) or a site name (for example Apollo 11) and press Go.' },
   { target: '.time-bar', title: 'Choose a date',
@@ -18,7 +18,7 @@ const STEPS = [
   { target: ['.astro-panel canvas', '.astro-panel .legend'], title: 'The next 30 days',
     text: 'Yellow line: the Sun. Blue line: Earth. Above 0° means above the horizon: light for solar panels, and a direct radio link.' },
   { target: '.astro-panel .pins', title: 'Compare places',
-    text: 'Save up to three places as A, B and C. They get coloured rings on the Moon and appear side by side in a comparison table.' },
+    text: 'Save up to three places as A, B and C, or one place at different dates. They get coloured rings and appear side by side in a table. "Sky view" shows the horizon with the Sun and Earth.' },
   { target: '.view-controls', title: 'Light and view',
     text: 'Real light shows the phase, Full light lights the whole Moon, View from Earth shows the Moon as we see it.' },
   { target: '.report-card .actions', title: 'Rules and PDF',

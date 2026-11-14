@@ -44,6 +44,7 @@ export function keepOutKm(site, accuracyM, th) {
 // mask — маска горизонта выбранной точки (или null: рельефа нет)
 export function assessNeighbors(lat, lon, sites, accuracyM, th, mask = null) {
   const neighbors = sites
+    .filter(site => site.type !== 'planned')   // будущие цели — ещё не аппараты на Луне, им не мешаем
     .map(site => {
       const distanceKm = haversineKm(lat, lon, site.lat, site.lon, th.moon_radius_km);
       const keep = keepOutKm(site, accuracyM, th);

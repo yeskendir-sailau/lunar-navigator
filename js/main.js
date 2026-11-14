@@ -15,6 +15,7 @@ import { createViewControls } from './view-controls.js';
 import { createStartScreen } from './start-screen.js';
 import { createTopTools, getTheme } from './theme.js';
 import { askTour, runTour } from './tour.js';
+import { createSkyPanel } from './sky-panel.js';
 
 const url = path => new URL(path, import.meta.url);
 
@@ -32,6 +33,8 @@ window.addEventListener('themechange', e => setSceneTheme(e.detail));
 let sites = [];
 try {
   sites = await loadSites(url('../data/sites.json'));
+  // Будущие цели (тип planned): места без координат пропускаются, пока их не заполнили
+  try { sites = sites.concat(await loadSites(url('../data/planned.json'))); } catch (error) { console.warn(error.message); }
 } catch (error) {
   console.error(error);   // сайт всё равно покажет Луну, просто без меток
 }
@@ -77,9 +80,11 @@ const compare = th ? createCompare({
   },
   onPdf: () => downloadPdf(),
 }) : null;
+const sky = eph ? createSkyPanel(eph, { getMask: (lat, lon) => horizonFor(horizons, lat, lon) }) : null;   // «Небо над точкой»
 const astro = eph ? createAstroPanel(eph, {
   onPin: (slot, lat, lon) => compare?.setSlot(slot, lat, lon),
   getMask: (lat, lon) => horizonFor(horizons, lat, lon),
+  onSky: () => sky?.toggle(),
 }) : null;
 
 // Полный отчёт для выбранной точки; возвращает цвет кольца
@@ -110,6 +115,7 @@ if (eph) {
         refresh();
         astro?.setTime(ms);
         compare?.setTime(ms);
+        sky?.setTime(ms);
         lastUpdate = now;
       }
     },
@@ -122,6 +128,7 @@ picker = initPicker({
   onPoint: (lat, lon) => {
     point = { lat, lon };
     astro?.setPoint(lat, lon);
+    sky?.setPoint(lat, lon);
     return refresh();
   },
   onSite: site => (site ? card.show(site) : card.hide()),

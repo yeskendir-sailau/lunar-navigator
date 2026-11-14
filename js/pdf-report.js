@@ -8,6 +8,7 @@ import { horizonFor } from './horizon.js';
 import { buildComparison } from './compare.js';
 import { fmtUtc, fmtDuration, fmtDeg, fmtDistance, fmtHours } from './format.js';
 import { SLOT_COLORS } from './slot-colors.js';
+import { whyItMatters } from './why.js';
 
 const NASA_URL = 'https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf';
 const CHART_DAYS = 30;
@@ -48,7 +49,8 @@ function latLonText(lat, lon) {
 
 // --- График (рисуем на скрытом canvas, вставляем картинкой) ---
 // lines: [{ values, color, label, dash? }]
-function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
+// relative: подписи «+5 d» (дни от начала) вместо дат — когда у мест разные даты
+function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560, relative = false } = {}) {
   const c = document.createElement('canvas');
   c.width = wPx; c.height = hPx;
   const g = c.getContext('2d');
@@ -59,7 +61,10 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
   if (n < 2) return c.toDataURL('image/jpeg', 0.92);
   const t0 = timesMs[0], t1 = timesMs[n - 1];
   const x = t => padL + ((t - t0) / (t1 - t0)) * (wPx - padL - padR);
-  const y = e => padT + ((90 - e) / 180) * (hPx - padT - padB);
+  // масштаб по высоте: у полюса Солнце и Земля держатся у горизонта — тогда берём ±10° или ±20°, а не ±90°
+  const maxAbs = Math.max(5, ...lines.flatMap(l => l.values.filter(Number.isFinite).map(Math.abs)));
+  const lim = [10, 20, 45, 90].find(v => maxAbs <= v) ?? 90;
+  const y = e => padT + ((lim - Math.max(-lim, Math.min(lim, e))) / (2 * lim)) * (hPx - padT - padB);
 
   g.font = '600 30px Helvetica, Arial, sans-serif';
   g.fillStyle = '#1d2430';
@@ -68,7 +73,7 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
   g.font = '24px Helvetica, Arial, sans-serif';
   g.textAlign = 'right';
   g.textBaseline = 'middle';
-  for (const e of [90, 45, 0, -45, -90]) {
+  for (const e of [lim, lim / 2, 0, -lim / 2, -lim]) {
     g.strokeStyle = e === 0 ? '#5f6a7a' : '#e1e5ea';
     g.lineWidth = e === 0 ? 2.5 : 1.5;
     g.beginPath(); g.moveTo(padL, y(e)); g.lineTo(wPx - padR, y(e)); g.stroke();
@@ -85,7 +90,7 @@ function chartImage(timesMs, lines, { title, wPx = 1700, hPx = 560 } = {}) {
     g.beginPath(); g.moveTo(x(t), padT); g.lineTo(x(t), hPx - padB); g.stroke();
     g.fillStyle = '#5f6a7a';
     g.textAlign = x(t) > wPx - padR - 40 ? 'right' : 'center';   // последняя дата не обрезается
-    g.fillText(fmtUtc(t).slice(5, 10), Math.min(x(t), wPx - padR), hPx - padB + 12);
+    g.fillText(relative ? `+${Math.round((t - t0) / day)} d` : fmtUtc(t).slice(5, 10), Math.min(x(t), wPx - padR), hPx - padB + 12);
   }
   // линии
   for (const l of lines) {
@@ -313,7 +318,9 @@ function sunEarthSection(w, ctx, lat, lon, ms, mask) {
   const h = CW * 560 / 1700;
   w.ensure(h + 3);
   doc.addImage(img, 'JPEG', M, w.y, CW, h);
-  w.y += h + 4;
+  w.y += h + 3;
+  const why = whyItMatters(lat, Math.max(...series.sun.filter(Number.isFinite)));
+  if (why) w.text(why, { size: 9, color: ACCENT, gap: 3 });
 }
 
 function neighborsSection(w, ctx, lat, lon, accuracyM, mask) {
@@ -349,8 +356,10 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
   const { doc, M, CW } = w;
   const cmp = buildComparison(ctx, places, { ms, accuracyM });
   w.newPage();
-  w.heading(`Comparison of ${places.length} places`);
-  w.text(`Same time and landing accuracy for every place. "best" marks only the better number in a row, not a safety guarantee.`,
+  const ownDates = places.some(p => Number.isFinite(p.ms));
+  w.heading(ownDates ? `Comparison of ${places.length} place / date options` : `Comparison of ${places.length} places`);
+  w.text((ownDates ? 'Each column has its own date (shown under its name); the same landing accuracy for all. '
+    : 'Same time and landing accuracy for every place. ') + '"best" marks only the better number in a row, not a safety guarantee.',
     { size: 9, color: MUTED, gap: 3 });
 
   const labelW = 58;
@@ -368,7 +377,7 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
     doc.text(clean(`Place ${p.slot}`), x + 7, w.y + 4.4, { baseline: 'top' });
     w.font(8, false, MUTED);
     const label = w.lines(cmp.columns[i].label, 8, colW - 6).slice(0, 2);
-    doc.text(label, x + 3, w.y + 9.3, { baseline: 'top' });
+    doc.text(ownDates && Number.isFinite(p.ms) ? [fmtUtc(p.ms), label[0]] : label, x + 3, w.y + 9.3, { baseline: 'top' });
   });
   w.y += headH + 2;
   cmp.rows.forEach((row, r) => {
@@ -400,13 +409,13 @@ function comparisonSection(w, ctx, places, ms, accuracyM) {
 
   // Графики: Солнце и Земля для всех мест (цвета мест)
   if (ctx.eph && Number.isFinite(ms)) {
-    const all = places.map(p => elevationSeries(ctx.eph, p.lat, p.lon, ms, CHART_DAYS * 24, 60));
+    const all = places.map(p => elevationSeries(ctx.eph, p.lat, p.lon, Number.isFinite(p.ms) ? p.ms : ms, CHART_DAYS * 24, 60));
     const times = all[0].timesMs;
     const h = CW * 560 / 1700;
     for (const [field, title] of [['sun', 'Sun elevation, next 30 days'], ['earth', 'Earth elevation, next 30 days (Earth in view = above 0°)']]) {
       const img = chartImage(times, places.map((p, i) => ({
         values: all[i][field], color: SLOT_COLORS[p.slot].css, label: `Place ${p.slot}`, dash: [null, [14, 10], [3, 9]][i],
-      })), { title });
+      })), { title: ownDates ? `${title} (days after each date)` : title, relative: ownDates });
       w.ensure(h + 3);
       doc.addImage(img, 'JPEG', M, w.y, CW, h);
       w.y += h + 4;

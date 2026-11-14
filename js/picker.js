@@ -56,13 +56,16 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
   function makeSlotMarker(slot) {
     const { hex, css } = SLOT_COLORS[slot];
     const group = new THREE.Group();
-    const dark = new THREE.Mesh(new THREE.RingGeometry(0.034, 0.05, 48),
+    // A, B, C — кольца разного размера и буквы в разных местах: если это одно место (сравнение дат), видно все три
+    const k = { A: 0, B: 1, C: 2 }[slot] ?? 0;
+    const r0 = 0.038 + k * 0.014;
+    const dark = new THREE.Mesh(new THREE.RingGeometry(r0 - 0.004, r0 + 0.012, 48),
       new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide, transparent: true, opacity: 0.55 }));
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.038, 0.046, 48),
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r0, r0 + 0.008, 48),
       new THREE.MeshBasicMaterial({ color: hex, side: THREE.DoubleSide }));
     ring.position.z = 0.0008;   // чуть выше тёмной подложки
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: letterTexture(slot, css), transparent: true, depthWrite: false }));
-    label.center.set(0.5, -0.9);   // буква над кольцом
+    label.center.set([0.5, 1.6, -0.6][k], -0.5 - (r0 + 0.022) / 0.11);   // буква над кольцом: A по центру, B левее, C правее
     label.scale.setScalar(0.11);
     label.position.z = 0.0016;
     group.add(dark, ring, label);

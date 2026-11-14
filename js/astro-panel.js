@@ -6,6 +6,7 @@ import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astr
 import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
 import { addFold } from './panel-fold.js';
 import { SLOT_COLORS } from './slot-colors.js';
+import { whyItMatters } from './why.js';
 
 const SUN_COLOR = '#f8f4e3';
 const EARTH_COLOR = '#7aa2ff';
@@ -26,7 +27,8 @@ function make(tag, className, text) {
 }
 
 // onPin(slot, lat, lon) вызывается кнопками «Set as A / B» (сравнение мест)
-export function createAstroPanel(eph, { onPin, getMask } = {}) {
+// onSky() — кнопка «Sky view» (окно «Небо над точкой»)
+export function createAstroPanel(eph, { onPin, getMask, onSky } = {}) {
   const style = document.createElement('style');
   style.textContent = `
     .astro-panel {
@@ -57,6 +59,10 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     .astro-panel canvas { display: block; margin-top: 4px; }
     .astro-panel .legend { display: flex; gap: 12px; color: #9fb0c8; font-size: 11px; margin-top: 4px; }
     .astro-panel .note { color: #7f8fa6; font-size: 11px; margin-top: 6px; }
+    .astro-panel .sky-btn { width: 100%; margin: 0 0 8px; padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
+    .astro-panel .why { margin-top: 8px; padding: 6px 8px; border-left: 3px solid #4cc9f0; border-radius: 4px;
+      background: rgba(76,201,240,.08); font-size: 12px; }
   `;
   document.head.appendChild(style);
 
@@ -80,6 +86,10 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     pinRow.appendChild(button);
   }
   el.appendChild(pinRow);
+  const skyBtn = make('button', 'sky-btn', 'Sky view: horizon, Sun and Earth');
+  skyBtn.title = 'Show the horizon around this point and where the Sun and Earth are';
+  skyBtn.addEventListener('click', () => onSky?.());
+  el.appendChild(skyBtn);
 
   const status = make('p', 'status');
   el.appendChild(status);
@@ -115,6 +125,9 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   el.appendChild(legend);
   const noteEl = make('div', 'note');
   el.appendChild(noteEl);
+  const whyEl = make('div', 'why');
+  whyEl.hidden = true;
+  el.appendChild(whyEl);
   addFold(el, head, [timeLine]);   // кнопка «−» / «+»: в свёрнутом виде остаются заголовок и время
   document.body.appendChild(el);
 
@@ -219,7 +232,13 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     earthEventRow.dt.textContent = earthX ? (earthX.rising ? 'Next Earthrise' : 'Next Earthset') : 'Earthrise / Earthset';
     setEvent(earthEventRow, earthTimeRow, earthX, ms);
 
-    drawChart(elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60));
+    const series = elevationSeries(eph, lat, lon, ms, CHART_DAYS * 24, 60);
+    drawChart(series);
+    // «Почему это важно»: сколько максимум поднимается Солнце
+    const sunMax = Math.max(...series.sun.filter(Number.isFinite));
+    const why = whyItMatters(lat, sunMax);
+    whyEl.hidden = !why;
+    whyEl.textContent = why ?? '';
   }
 
   render();

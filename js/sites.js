@@ -22,7 +22,7 @@ export async function loadSites(url) {
   for (const site of all) {
     if (site.name && Number.isFinite(site.lat) && Number.isFinite(site.lon)) {
       good.push(site);
-    } else {
+    } else if (site.type !== 'planned') {   // у будущих целей координаты могут быть ещё не заполнены
       console.warn('Skipped bad record in sites.json:', site);
     }
   }
