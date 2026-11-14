@@ -38,7 +38,7 @@ const texture = new THREE.TextureLoader().load(fileUrl('../textures/moon_4k.jpg'
 texture.colorSpace = THREE.SRGBColorSpace;
 
 const geometry = new THREE.SphereGeometry(1, 64, 64);
-0// Лёгкий рельеф: та же текстура используется как карта высот, чтобы кратеры и борозды чуть «выступали» на свету.
+// Лёгкий рельеф: та же текстура используется как карта высот, чтобы кратеры и борозды чуть «выступали» на свету.
 // Если рельеф кажется слишком сильным или слабым, поменяйте MOON_RELIEF (0 = выключить).
 const MOON_RELIEF = 0.03;
 const material = new THREE.MeshStandardMaterial({
@@ -75,6 +75,10 @@ function labelSprite(lines, color) {
   canvas.width = 512;
   canvas.height = 128;
   const g = canvas.getContext('2d');
+  g.fillStyle = 'rgba(10, 14, 22, 0.72)';          // тёмная плашка: подпись читается и на тёмном, и на светлом фоне
+  g.beginPath();
+  if (g.roundRect) g.roundRect(24, 6, 464, 116, 28); else g.rect(24, 6, 464, 116);
+  g.fill();
   g.textAlign = 'center';
   g.fillStyle = color;
   g.font = '600 44px system-ui, sans-serif';
@@ -91,6 +95,7 @@ function labelSprite(lines, color) {
 }
 
 // Мягкое свечение: круглый спрайт с радиальным градиентом и сложением цветов (additive)
+const glows = [];   // свечения: на светлом фоне (при сложении цветов) не видны, их прячем
 function glowSprite(stops, size) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 256;
@@ -105,6 +110,7 @@ function glowSprite(stops, size) {
     map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
   sprite.scale.set(size, size, 1);
+  glows.push(sprite);
   return sprite;
 }
 
@@ -262,7 +268,16 @@ const starMaterial = new THREE.PointsMaterial({
   size: 1.5,
   sizeAttenuation: false
 });
-scene.add(new THREE.Points(starGeometry, starMaterial));
+const stars = new THREE.Points(starGeometry, starMaterial);
+scene.add(stars);
+
+// Тема: тёмная (космос и звёзды) или светло-серая (однотонный светлый фон)
+export function setTheme(theme) {
+  scene.background = new THREE.Color(0x05070c);
+  stars.visible = true;
+  for (const g of glows) g.visible = true;
+  renderer.setClearColor(0x05070c, 1);
+}
 
 // 9. ПОЛЁТ КАМЕРЫ К ТОЧКЕ (для карточки места)
 let flight = null;

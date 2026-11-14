@@ -69,20 +69,20 @@ export function createCoordsInput({ sites = [], onPoint }) {
     .coords-box {
       position: fixed; top: 16px; left: 16px; z-index: 20;
       width: min(320px, calc(100vw - 32px)); box-sizing: border-box; padding: 8px 10px;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5);
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 13px/1.4 system-ui, sans-serif;
     }
     .coords-box form { display: flex; gap: 6px; }
     .coords-box input {
-      flex: 1; min-width: 0; padding: 6px 8px; color: #e8edf5; background: #141b29;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
+      flex: 1; min-width: 0; padding: 6px 8px; color: var(--text, #e8edf5); background: var(--field, #141b29);
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit;
     }
     .coords-box button {
-      padding: 6px 12px; color: #e8edf5; background: #1d2740; cursor: pointer;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
+      padding: 6px 12px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer;
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit;
     }
-    .coords-box .msg { margin: 6px 2px 0; color: #c9d4e5; font-size: 12px; }
+    .coords-box .msg { margin: 6px 2px 0; color: var(--text2, #c9d4e5); font-size: 12px; }
     .coords-box .msg:empty { display: none; }
   `;
   document.head.appendChild(style);

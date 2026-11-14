@@ -29,7 +29,7 @@ export function initPicker({ sites, onPoint, onSite, getPreview }) {
   const tip = document.createElement('div');   // подпись у курсора: значок и слово (цвет не единственный сигнал)
   tip.className = 'hover-tip';
   tip.style.cssText = 'position:fixed;z-index:30;pointer-events:none;display:none;padding:3px 8px;border-radius:8px;' +
-    'background:rgba(10,14,22,.92);color:#e8edf5;border:1px solid rgba(255,255,255,.2);font:12px system-ui,sans-serif;';
+    'background:var(--panel-solid, rgba(10,14,22,.92));color:var(--text, #e8edf5);border:1px solid var(--line, rgba(255,255,255,.2));font:12px system-ui,sans-serif;';
   document.body.appendChild(tip);
 
   onFrame(() => {   // кольца тоже масштабируем при приближении

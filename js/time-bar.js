@@ -27,21 +27,21 @@ export function createTimeBar(eph, { onTime }) {
     .time-bar {
       position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20;
       display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; padding: 8px 10px; width: min(560px, calc(100vw - 32px)); box-sizing: border-box;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5);
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 13px/1.4 system-ui, sans-serif;
     }
     .time-bar input, .time-bar select {
-      padding: 5px 6px; color: #e8edf5; background: #141b29; color-scheme: dark;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
+      padding: 5px 6px; color: var(--text, #e8edf5); background: var(--field, #141b29); color-scheme: var(--scheme, dark);
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit;
     }
     .time-bar button {
-      padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
+      padding: 5px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer;
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit;
     }
     .time-bar .play { min-width: 58px; }
-    .time-bar .slider-row { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; color: #9fb0c8; font-size: 11px; }
-    .time-bar input[type=range] { flex: 1; min-width: 0; padding: 0; accent-color: #4cc9f0; }
+    .time-bar .slider-row { flex: 1 1 100%; display: flex; align-items: center; gap: 8px; color: var(--muted, #9fb0c8); font-size: 11px; }
+    .time-bar input[type=range] { flex: 1; min-width: 0; padding: 0; accent-color: var(--accent, #4cc9f0); }
     @media (max-width: 1100px) {
       .time-bar { top: 76px; left: 16px; transform: none; max-width: calc(100vw - 32px); }
     }

@@ -12,6 +12,7 @@ Record the screen at 1280×720 or larger. Open the live site before recording. U
 | 28–30 s | Back to the Moon. | "Data: NASA LOLA, JPL, NASA 2011. Thresholds are our own choice. Built with AI help (Claude)." |
 
 Notes
+- Optional last second: show the **Save PDF** button, or the light theme button. Skip the tour question: press "No, thanks" when it appears (or record after the first visit; the site remembers the answer).
 - Do **not** claim "Sun behind a mountain": terrain data is not included yet (the report says "Flat horizon").
 - Upload to YouTube as **Unlisted** (anyone with the link can open it), check the link in a private window.
 - On Mac: Cmd + Shift + 5 → "Record Selected Portion". On Windows: Win + G (Xbox Game Bar) or OBS.

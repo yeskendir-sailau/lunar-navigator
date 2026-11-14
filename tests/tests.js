@@ -6,6 +6,7 @@ import { parseHorizons, horizonFor, maskElevationAt } from '../js/horizon.js';
 import { buildReport } from '../js/report-logic.js';
 import { buildComparison } from '../js/compare.js';
 import { parseLatLon as parseCoords } from '../js/coords-input.js';
+import { buildReportHtml } from '../js/pdf-report.js';
 
 // Простая проверочная модель неба: Земля всегда в точке (0°, 0°), Солнце обходит Луну по экватору за 29,53 суток.
 // (Настоящие положения — в data/sun_earth.json; здесь нужна только предсказуемая картина для проверок.)
@@ -215,6 +216,30 @@ export function runTests({ sites, th }) {
     if (!a || !b) throw new Error('not parsed');
     near(a.lat, b.lat, 1e-9);
     near(a.lon, b.lon, 1e-9);
+  });
+
+  // --- PDF-отчёт ---
+  test('PDF report for one place: verdict, neighbours table, charts, method and limits', () => {
+    const a = byId('apollo12');
+    const html = buildReportHtml({ kind: 'single', ctx: { ...ctx, sites }, places: [{ lat: a.lat, lon: a.lon }], ms: t0 + 2 * 86400e3, accuracyM: 100 });
+    for (const need of ['Landing site report', 'Surveyor 3', 'Not recommended', 'How it was calculated', 'Limitations', 'Flat horizon', 'Sun elevation', '<svg']) {
+      if (!html.includes(need)) throw new Error(`missing "${need}"`);
+    }
+  });
+  test('PDF report for 3 places: comparison table, best value, one line per place on the charts', () => {
+    const html = buildReportHtml({ kind: 'compare', ctx, places: [{ lat: 0, lon: 0 }, { lat: 0, lon: 120 }, { lat: -85, lon: 0 }], ms: t0 + 86400e3, accuracyM: 100 });
+    for (const need of ['Comparison report', 'Side by side', 'class="best"', 'Sun elevation, next', 'Earth elevation, next']) {
+      if (!html.includes(need)) throw new Error(`missing "${need}"`);
+    }
+    if ((html.match(/<path /g) || []).length < 6) throw new Error('chart lines missing');
+  });
+  test('PDF report escapes HTML in place names', () => {
+    const html = buildReportHtml({ kind: 'single', ctx, places: [{ lat: 1, lon: 1, label: '<script>alert(1)</script>' }], ms: t0, accuracyM: 100 });
+    if (html.includes('<script>alert(1)</script>')) throw new Error('not escaped');
+  });
+  test('PDF report works without Sun / Earth data (no chart, no crash)', () => {
+    const html = buildReportHtml({ kind: 'single', ctx: { eph: null, sites, th, horizons: null }, places: [{ lat: 10, lon: 10 }], ms: NaN, accuracyM: 100 });
+    if (!html.includes('No Sun / Earth data')) throw new Error('no fallback text');
   });
 
   return results;

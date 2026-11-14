@@ -81,14 +81,14 @@ function buildHowTo(th, hasTerrain) {
   return box;
 }
 
-export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
+export function createReportCard({ th, onAccuracy, onPdf, hasTerrain = false }) {
   const style = document.createElement('style');
   style.textContent = `
     .report-card {
       position: fixed; top: 76px; left: 16px; z-index: 20;
       width: min(340px, calc(100vw - 32px)); max-height: calc(100vh - 92px); overflow: auto; box-sizing: border-box;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5; padding: 10px 12px 12px;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5); padding: 10px 12px 12px;
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 13px/1.45 system-ui, sans-serif;
       opacity: 0; transform: translateY(-8px); pointer-events: none;
       transition: opacity .3s ease, transform .3s ease;
@@ -96,42 +96,42 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
     .report-card.open { opacity: 1; transform: none; pointer-events: auto; }
     .report-card .top { display: flex; align-items: center; gap: 8px; }
     .report-card .coords { font-weight: 600; font-size: 14px; flex: 1; }
-    .report-card .fold { width: 26px; height: 26px; border: 0; border-radius: 6px; background: #1d2740; color: #e8edf5; cursor: pointer; }
-    .report-card .when { color: #9fb0c8; font-size: 11px; margin-bottom: 8px; }
+    .report-card .fold { width: 26px; height: 26px; border: 0; border-radius: 6px; background: var(--btn, #1d2740); color: var(--text, #e8edf5); cursor: pointer; }
+    .report-card .when { color: var(--muted, #9fb0c8); font-size: 11px; margin-bottom: 8px; }
     .report-card .verdict { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 8px;
-      border-radius: 10px; background: rgba(255,255,255,.06); }
+      border-radius: 10px; background: var(--fill, rgba(255,255,255,.06)); }
     .report-card .badge { flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
       font-size: 20px; font-weight: 700; color: #0b0f17; }
     .report-card .verdict .word { font-weight: 700; font-size: 16px; }
-    .report-card .verdict .text { color: #9fb0c8; font-size: 12px; }
-    .report-card .params { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #9fb0c8; font-size: 12px; }
-    .report-card select { padding: 3px 6px; color: #e8edf5; background: #141b29; color-scheme: dark;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
+    .report-card .verdict .text { color: var(--muted, #9fb0c8); font-size: 12px; }
+    .report-card .params { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--muted, #9fb0c8); font-size: 12px; }
+    .report-card select { padding: 3px 6px; color: var(--text, #e8edf5); background: var(--field, #141b29); color-scheme: var(--scheme, dark);
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit; }
     .report-card .block { border-left: 4px solid; padding: 4px 0 4px 8px; margin-bottom: 6px; }
     .report-card .block .t { display: flex; align-items: center; gap: 6px; font-weight: 600; }
     .report-card .block .mini { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
       font-size: 12px; font-weight: 700; color: #0b0f17; }
-    .report-card .block .w { font-weight: 400; font-size: 12px; color: #9fb0c8; margin-left: auto; }
+    .report-card .block .w { font-weight: 400; font-size: 12px; color: var(--muted, #9fb0c8); margin-left: auto; }
     .report-card .block .h { font-size: 12px; }
-    .report-card .block ul { margin: 2px 0 0; padding-left: 16px; color: #9fb0c8; font-size: 12px; }
-    .report-card .block .why { color: #e8edf5; font-size: 12px; margin-top: 2px; }
-    .report-card .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .report-card .actions button { padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit; }
-    .report-card .small { color: #7f8fa6; font-size: 11px; }
+    .report-card .block ul { margin: 2px 0 0; padding-left: 16px; color: var(--muted, #9fb0c8); font-size: 12px; }
+    .report-card .block .why { color: var(--text, #e8edf5); font-size: 12px; margin-top: 2px; }
+    .report-card .actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+    .report-card .actions button { padding: 5px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer;
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit; }
+    .report-card .small { color: var(--muted2, #7f8fa6); font-size: 11px; }
     .report-card.folded .verdict ~ *, .report-card.folded .when { display: none; }
     .howto-back { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6); display: none;
       align-items: center; justify-content: center; padding: 16px; }
     .howto-back.open { display: flex; }
     .howto-modal { position: relative; width: min(640px, 100%); max-height: calc(100vh - 32px); overflow: auto;
-      background: #0d121c; color: #e8edf5; border: 1px solid rgba(255,255,255,.2); border-radius: 14px;
+      background: var(--modal, #0d121c); color: var(--text, #e8edf5); border: 1px solid var(--line, rgba(255,255,255,.2)); border-radius: 14px;
       padding: 8px 22px 18px; font: 14px/1.55 system-ui, sans-serif; }
     .howto h2 { margin: 12px 0 6px; font-size: 20px; }
-    .howto h3 { margin: 14px 0 4px; font-size: 15px; color: #4cc9f0; }
+    .howto h3 { margin: 14px 0 4px; font-size: 15px; color: var(--accent-text, #4cc9f0); }
     .howto p, .howto ul { margin: 0 0 8px; }
-    .howto a { color: #4cc9f0; }
+    .howto a { color: var(--accent-text, #4cc9f0); }
     .howto-close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 50%;
-      background: rgba(255,255,255,.12); color: #fff; font-size: 16px; cursor: pointer; }
+      background: var(--fill-strong, rgba(255,255,255,.12)); color: #fff; font-size: 16px; cursor: pointer; }
   `;
   document.head.appendChild(style);
 
@@ -172,7 +172,10 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
   const actions = make('div', 'actions');
   const howBtn = make('button', '', 'How it is calculated');
   const noteSmall = make('span', 'small', '');
-  actions.append(howBtn, noteSmall);
+  const pdfBtn = make('button', 'pdf-btn', 'Save PDF');
+  pdfBtn.title = 'Open a printable report: choose "Save as PDF" in the print window';
+  pdfBtn.addEventListener('click', () => onPdf?.());
+  actions.append(howBtn, pdfBtn, noteSmall);
   el.append(top, when, verdict, params, blocksBox, actions);
   document.body.appendChild(el);
 
@@ -215,7 +218,7 @@ export function createReportCard({ th, onAccuracy, hasTerrain = false }) {
     const s = STATUS[report.overall];
     paintBadge(badge, report.overall, true);
     vword.textContent = s.word;
-    vword.style.color = s.color;
+    vword.style.color = s.text;
     vsub.textContent = report.verdict;
     noteSmall.textContent = report.terrain ? 'Terrain horizon used.' : 'Flat horizon, no terrain.';
 

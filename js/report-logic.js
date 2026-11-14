@@ -7,10 +7,10 @@ import { fmtHours, fmtDeg, fmtDistance } from './format.js';
 
 // Цвет всегда повторяется значком и словом (чтобы отчёт читался и без различения цветов)
 export const STATUS = {
-  green:   { icon: '✓', word: 'Good',            color: '#2ecc71', hex: 0x2ecc71 },
-  yellow:  { icon: '!', word: 'Caution',         color: '#f1c40f', hex: 0xf1c40f },
-  red:     { icon: '✕', word: 'Not recommended', color: '#e74c3c', hex: 0xe74c3c },
-  unknown: { icon: '?', word: 'No data',         color: '#9fb0c8', hex: 0x9fb0c8 },
+  green:   { icon: '✓', word: 'Good',            color: '#2ecc71', hex: 0x2ecc71, text: 'var(--good-text, #2ecc71)' },
+  yellow:  { icon: '!', word: 'Caution',         color: '#f1c40f', hex: 0xf1c40f, text: 'var(--caution-text, #f1c40f)' },
+  red:     { icon: '✕', word: 'Not recommended', color: '#e74c3c', hex: 0xe74c3c, text: 'var(--bad-text, #e74c3c)' },
+  unknown: { icon: '?', word: 'No data',         color: '#9fb0c8', hex: 0x9fb0c8, text: 'var(--muted, #9fb0c8)' },
 };
 const RANK = { green: 0, yellow: 1, red: 2 };
 

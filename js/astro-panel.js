@@ -5,8 +5,7 @@
 import { conditionsAt, nextCrossing, elevationSeries, inDataRange } from './astro.js';
 import { fmtUtc, fmtDuration, fmtDeg } from './format.js';
 
-const SUN_COLOR = '#f8f4e3';
-const EARTH_COLOR = '#7aa2ff';
+const cssVar = (name, fallback) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 const CHART_DAYS = 30;
 
 function make(tag, className, text) {
@@ -24,27 +23,27 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
       position: fixed; top: 96px; right: 16px; z-index: 20;
       width: 320px; max-width: calc(100vw - 32px); max-height: calc(100vh - 112px); overflow: auto;
       box-sizing: border-box; padding: 12px 14px;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5);
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 13px/1.45 system-ui, sans-serif;
       opacity: 0; transform: translateY(-8px); pointer-events: none;
       transition: opacity .3s ease, transform .3s ease;
     }
     .astro-panel.open { opacity: 1; transform: none; pointer-events: auto; }
     .astro-panel h3 { margin: 0 0 4px; font-size: 15px; }
-    .astro-panel .timeline { color: #9fb0c8; margin-bottom: 8px; }
-    .astro-panel .pins { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; color: #9fb0c8; }
+    .astro-panel .timeline { color: var(--muted, #9fb0c8); margin-bottom: 8px; }
+    .astro-panel .pins { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; color: var(--muted, #9fb0c8); }
     .astro-panel .pins button {
-      padding: 3px 10px; color: #e8edf5; background: #1d2740; cursor: pointer; font: inherit;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px;
+      padding: 3px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer; font: inherit;
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px;
     }
     .astro-panel dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0 0 8px; }
-    .astro-panel dt { color: #9fb0c8; }
+    .astro-panel dt { color: var(--muted, #9fb0c8); }
     .astro-panel dd { margin: 0; text-align: right; }
-    .astro-panel .status { color: #9fb0c8; margin: 0 0 6px; }
+    .astro-panel .status { color: var(--muted, #9fb0c8); margin: 0 0 6px; }
     .astro-panel canvas { display: block; margin-top: 4px; }
-    .astro-panel .legend { display: flex; gap: 12px; color: #9fb0c8; font-size: 11px; margin-top: 4px; }
-    .astro-panel .note { color: #7f8fa6; font-size: 11px; margin-top: 6px; }
+    .astro-panel .legend { display: flex; gap: 12px; color: var(--muted, #9fb0c8); font-size: 11px; margin-top: 4px; }
+    .astro-panel .note { color: var(--muted2, #7f8fa6); font-size: 11px; margin-top: 6px; }
   `;
   document.head.appendChild(style);
 
@@ -86,7 +85,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   const canvas = make('canvas');
   el.appendChild(canvas);
   const legend = make('div', 'legend');
-  for (const [name, color] of [['Sun elevation', SUN_COLOR], ['Earth elevation', EARTH_COLOR]]) {
+  for (const [name, color] of [['Sun elevation', 'var(--chart-sun, #f8f4e3)'], ['Earth elevation', 'var(--chart-earth, #7aa2ff)']]) {
     const item = make('span', '', '● ' + name);
     item.style.color = color;
     legend.appendChild(item);
@@ -123,13 +122,13 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
     const y = e => padT + ((90 - e) / 180) * (H - padT - padB);
 
     ctx.font = '10px system-ui, sans-serif';
-    ctx.fillStyle = '#7f8fa6';
+    ctx.fillStyle = cssVar('--muted2', '#7f8fa6');
     ctx.lineWidth = 1;
     for (const e of [90, 0, -90]) {
       ctx.beginPath();
       ctx.moveTo(padL, y(e));
       ctx.lineTo(W - padR, y(e));
-      ctx.strokeStyle = e === 0 ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.12)';
+      ctx.strokeStyle = e === 0 ? 'rgba(255,255,255,0.45)' : 'var(--fill-strong, rgba(255,255,255,.12))';
       ctx.stroke();
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
@@ -153,8 +152,8 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
       });
       ctx.stroke();
     }
-    line(series.earth, EARTH_COLOR);
-    line(series.sun, SUN_COLOR);
+    line(series.earth, cssVar('--chart-earth', '#7aa2ff'));
+    line(series.sun, cssVar('--chart-sun', '#f8f4e3'));
   }
 
   function eventText(crossing, now) {
@@ -195,6 +194,7 @@ export function createAstroPanel(eph, { onPin, getMask } = {}) {
   }
 
   render();
+  window.addEventListener('themechange', () => render());
 
   return {
     // Вызывается, когда выбрана точка на Луне

@@ -90,7 +90,7 @@ function make(tag, className, text) {
 }
 
 // Панель на странице. setSlot('A'|'B'|'C', lat, lon) добавляет место, setTime(ms) и setAccuracy(m) пересчитывают.
-export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
+export function createCompare({ eph, sites, th, horizons = null, accuracyM, onPdf }) {
   const el = make('div', 'compare');
   el.setAttribute('role', 'dialog');
   el.setAttribute('aria-label', 'Compare places');
@@ -98,7 +98,12 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
   head.appendChild(make('h3', '', 'Compare places'));
   const closeBtn = make('button', 'compare-close', '×');
   closeBtn.setAttribute('aria-label', 'Close comparison');
-  head.appendChild(closeBtn);
+  const pdfBtn = make('button', 'compare-close pdf-btn', 'Save PDF');
+  pdfBtn.title = 'Open a printable comparison: choose "Save as PDF" in the print window';
+  pdfBtn.addEventListener('click', () => onPdf?.(getPlaces()));
+  const headBtns = make('div', 'compare-btns');
+  headBtns.append(pdfBtn, closeBtn);
+  head.appendChild(headBtns);
   const table = make('table');
   const foot = make('div', 'compare-note');
   el.append(head, table, foot);
@@ -108,6 +113,8 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
   let ms = eph ? eph.startMs : NaN;
   let acc = accuracyM ?? th.neighbors.default_accuracy_1sigma_m;
   let dismissed = false;
+
+  const getPlaces = () => SLOTS.filter(s => slots[s]).map(s => slots[s]);
 
   function render() {
     const used = SLOTS.filter(s => slots[s]);
@@ -134,7 +141,7 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
       tr.appendChild(make('th', '', row.label));
       row.cells.forEach((cell, i) => {
         const td = make('td', row.best.includes(i) ? 'best' : '', cell.text);
-        if (cell.status) td.style.color = STATUS[cell.status].color;
+        if (cell.status) td.style.color = STATUS[cell.status].text;
         if (row.best.includes(i)) {
           td.appendChild(make('span', 'best-tag', ' best'));
           td.title = 'Best value in this row';
@@ -158,5 +165,7 @@ export function createCompare({ eph, sites, th, horizons = null, accuracyM }) {
     },
     setTime(newMs) { ms = newMs; render(); },
     setAccuracy(m) { acc = m; render(); },
+    getPlaces,
+    clear() { for (const k of SLOTS) slots[k] = null; dismissed = false; render(); },
   };
 }

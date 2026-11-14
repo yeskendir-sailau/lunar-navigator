@@ -12,21 +12,21 @@ export function createStartScreen({ onStart } = {}) {
     .start-screen {
       position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; text-align: center;
       background: radial-gradient(ellipse at center, rgba(5,8,14,.55) 0%, rgba(5,8,14,.93) 75%);
-      color: #e8edf5; font: 16px/1.55 system-ui, sans-serif; transition: opacity .6s ease;
+      color: var(--text, #e8edf5); font: 16px/1.55 system-ui, sans-serif; transition: opacity .6s ease;
     }
     .start-screen.leaving { opacity: 0; pointer-events: none; }
     .start-screen .inner { max-width: 560px; }
     .start-screen h1 { margin: 0 0 8px; font-size: clamp(30px, 6vw, 48px); letter-spacing: .02em; }
-    .start-screen p { margin: 0 0 12px; color: #c4cfe0; }
+    .start-screen p { margin: 0 0 12px; color: var(--text2, #c4cfe0); }
     .start-screen .lights { display: inline-flex; gap: 10px; margin: 6px 0 18px; }
     .start-screen .lights span { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px;
-      border-radius: 999px; background: rgba(255,255,255,.08); font-size: 14px; }
+      border-radius: 999px; background: var(--fill, rgba(255,255,255,.08)); font-size: 14px; }
     .start-screen .dot { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center;
       color: #0b0f17; font-weight: 700; font-size: 12px; }
     .start-screen button { padding: 12px 36px; font: 600 18px system-ui, sans-serif; color: #0b0f17;
-      background: #4cc9f0; border: 0; border-radius: 999px; cursor: pointer; }
+      background: var(--accent, #4cc9f0); border: 0; border-radius: 999px; cursor: pointer; }
     .start-screen button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-    .start-screen .small { margin-top: 18px; font-size: 12px; color: #7f8fa6; }
+    .start-screen .small { margin-top: 18px; font-size: 12px; color: var(--muted2, #7f8fa6); }
   `;
   document.head.appendChild(style);
 

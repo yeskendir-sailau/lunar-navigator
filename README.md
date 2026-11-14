@@ -17,11 +17,14 @@ Made for NASA Space Apps Challenge 2026. Live site: _add your GitHub Pages link 
 - **Real light / Full light**: real light shows the phase made by the real Sun direction; full light lights the whole Moon.
 - **View from Earth** shows the Moon the way we see it from home. The Sun and Earth are drawn in the scene in their real direction, labelled "not to scale".
 - **Compare places** (wide screens): "Set as A / B / C" in the Sun & Earth panel puts 2–3 places side by side. The best value in each row is highlighted.
+- **Save PDF**: in the report and in the comparison window. It opens a printable report (verdict, map of the place, three checks, Sun and Earth chart, neighbour table, method, limits, sources; for a comparison also the side-by-side table and charts with one line per place). In the print window choose "Save as PDF". No extra library is used, so it works offline.
+- **Dark or light grey theme**: the button in the top right corner (the choice is remembered).
+- **Site tour**: after Start the site asks whether you want a one-minute tour; it highlights each part of the site and blurs the rest. The ? button replays it.
 - **How it is calculated** (button in the report) explains every rule and says which numbers are NASA's and which are our own choice.
 
 ## How to use it
 
-Open the site, press **Start**, click a marker or the Moon. Read the overall colour first, then the three blocks: each one says *why* it is not green. Change the date with the slider and watch the colours change. On a phone you get the report, the date bar and the light buttons; the Sun & Earth graph, the site card and the comparison need a wide screen.
+Open the site, press **Start**, click a marker or the Moon. Read the overall colour first, then the three blocks: each one says *why* it is not green. Change the date with the slider and watch the colours change. On a phone you get the report, the date bar, the light buttons and the PDF; the Sun & Earth graph and the site card need a wide screen.
 
 ## Run it on your computer
 
@@ -60,7 +63,7 @@ _Table to be filled in from the output of `tools/horizons_check.mjs`. Not filled
 
 ## Tests
 
-`node tests/run.mjs` runs 29 checks, for example:
+`node tests/run.mjs` runs 33 checks, for example:
 
 - Apollo 12 and Surveyor 3 are 156.8 m apart, so a landing at Apollo 12's spot is **red** (inside the 2 km keep-out zone of Surveyor 3).
 - The keep-out distance is 2.0 km (0.5 km for impact sites) and grows to 3σ when the landing error is large.

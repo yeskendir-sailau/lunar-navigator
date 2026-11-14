@@ -26,8 +26,8 @@ export function createCard() {
     .site-card {
       position: fixed; left: 16px; bottom: 16px; z-index: 20;
       width: min(360px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5);
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 14px/1.5 system-ui, sans-serif;
       opacity: 0; transform: translateY(16px); pointer-events: none;
       transition: opacity .35s ease, transform .35s ease;
@@ -37,10 +37,10 @@ export function createCard() {
       border-radius: 12px 12px 0 0; }
     .site-card .body { padding: 12px 16px 14px; }
     .site-card h2 { margin: 0 0 2px; font-size: 20px; }
-    .site-card .meta { color: #9fb0c8; font-size: 12px; margin-bottom: 8px; }
+    .site-card .meta { color: var(--muted, #9fb0c8); font-size: 12px; margin-bottom: 8px; }
     .site-card p { margin: 0 0 10px; }
-    .site-card .credit { color: #7f8fa6; font-size: 11px; margin: 0 0 8px; }
-    .site-card a { color: #4cc9f0; }
+    .site-card .credit { color: var(--muted2, #7f8fa6); font-size: 11px; margin: 0 0 8px; }
+    .site-card a { color: var(--accent-text, #4cc9f0); }
     .site-card button { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px;
       border: 0; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff;
       font-size: 16px; cursor: pointer; }

@@ -14,16 +14,16 @@ export function createViewControls({ onLight, onEarthView, hasEarth }) {
     .view-controls {
       position: fixed; right: 16px; bottom: 16px; z-index: 20;
       display: flex; gap: 6px; align-items: center; padding: 8px 10px; flex-wrap: wrap; justify-content: flex-end;
-      background: rgba(10, 14, 22, 0.92); color: #e8edf5; max-width: calc(100vw - 32px); box-sizing: border-box;
-      border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 12px;
+      background: var(--panel-solid, rgba(10,14,22,.92)); color: var(--text, #e8edf5); max-width: calc(100vw - 32px); box-sizing: border-box;
+      border: 1px solid var(--line, rgba(255,255,255,.18)); border-radius: 12px;
       font: 13px/1.4 system-ui, sans-serif;
     }
     .view-controls button {
-      padding: 5px 10px; color: #e8edf5; background: #1d2740; cursor: pointer;
-      border: 1px solid rgba(255,255,255,.25); border-radius: 6px; font: inherit;
+      padding: 5px 10px; color: var(--text, #e8edf5); background: var(--btn, #1d2740); cursor: pointer;
+      border: 1px solid var(--line-strong, rgba(255,255,255,.25)); border-radius: 6px; font: inherit;
     }
-    .view-controls button[aria-pressed="true"] { background: #4cc9f0; color: #0b0f17; border-color: #4cc9f0; }
-    .view-controls .note { color: #7f8fa6; font-size: 11px; flex-basis: 100%; text-align: right; }
+    .view-controls button[aria-pressed="true"] { background: var(--accent, #4cc9f0); color: #0b0f17; border-color: var(--accent, #4cc9f0); }
+    .view-controls .note { color: var(--muted2, #7f8fa6); font-size: 11px; flex-basis: 100%; text-align: right; }
     @media (max-width: 1100px) { .view-controls { bottom: auto; top: 128px; right: 16px; } }
   `;
   document.head.appendChild(style);
