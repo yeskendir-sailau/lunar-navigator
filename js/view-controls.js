@@ -47,7 +47,7 @@ export function createViewControls({ onLight, onEarthView, hasEarth }) {
   earth.addEventListener('click', () => onEarthView?.());
 
   box.append(real, full, earth,
-    make('span', 'note', 'Smooth sphere: shows the phase, not mountain shadows.'));
+    make('span', 'note', 'Relief from LOLA, exaggerated about 7× (picture only; the report uses real heights).'));
   document.body.appendChild(box);
   return { setMode };
 }

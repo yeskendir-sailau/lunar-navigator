@@ -1,10 +1,11 @@
 // Compares our Sun / Earth elevations with NASA JPL Horizons for a few places and times and prints a Markdown table
 // (paste it into the "Comparison with JPL Horizons" section of README.md).
 // Needs Node 18+ and internet access (the Horizons web service). Run from the project folder:
-//     node tools/horizons_check.mjs
+//     node tools/horizons_check.mjs            (prints the table)
+//     node tools/horizons_check.mjs --readme   (prints it and also writes it into README.md)
 // NOTE: written without access to the live Horizons service, so the first run is also a test of the script itself.
 // If Horizons answers with an error, the script prints the answer so you can see why.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { directionAt, elevationDeg } from '../js/astro.js';
 
 const read = p => readFileSync(new URL(p, import.meta.url), 'utf8');
@@ -36,21 +37,39 @@ async function horizonsElevation(command, place, time) {
   return numbers[1];   // [azimuth, elevation]
 }
 
-console.log('| Place | Time (UTC) | Body | Horizons elevation | Our elevation | Difference |');
-console.log('|---|---|---|---|---|---|');
+const lines = [];
+const out = s => { console.log(s); lines.push(s); };
+out('| Place | Time (UTC) | Body | Horizons elevation | Our elevation | Difference |');
+out('|---|---|---|---|---|---|');
 let worst = 0;
+let worstSun = 0;
 for (const place of PLACES) {
   for (const time of TIMES) {
     for (const body of BODIES) {
       const ms = Date.parse(time.replace(' ', 'T') + ':00Z');
       const dir = directionAt(eph, body.key, ms);
-      if (!dir) { console.log(`| ${place.name} | ${time} | ${body.name} | – | outside data range | – |`); continue; }
+      if (!dir) { out(`| ${place.name} | ${time} | ${body.name} | – | outside data range | – |`); continue; }
       const ours = elevationDeg(dir, place.lat, place.lon);
       const theirs = await horizonsElevation(body.command, place, time);
       const diff = ours - theirs;
       worst = Math.max(worst, Math.abs(diff));
-      console.log(`| ${place.name} | ${time} | ${body.name} | ${theirs.toFixed(3)}° | ${ours.toFixed(3)}° | ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toFixed(3)}° |`);
+      if (body.key === 'sun') worstSun = Math.max(worstSun, Math.abs(diff));
+      out(`| ${place.name} | ${time} | ${body.name} | ${theirs.toFixed(3)}° | ${ours.toFixed(3)}° | ${diff >= 0 ? '+' : '−'}${Math.abs(diff).toFixed(3)}° |`);
     }
   }
 }
-console.log(`\nLargest difference: ${worst.toFixed(3)}°`);
+out('');
+out(`Largest difference: ${worst.toFixed(3)}° (Sun only: ${worstSun.toFixed(3)}°). Checked on ${new Date().toISOString().slice(0, 10)} with the JPL Horizons API.`);
+
+// --readme: записать таблицу в README.md между метками <!-- horizons-check:start --> и <!-- horizons-check:end -->
+if (process.argv.includes('--readme')) {
+  const path = new URL('../README.md', import.meta.url);
+  const readme = readFileSync(path, 'utf8');
+  const re = /(<!-- horizons-check:start -->)[\s\S]*?(<!-- horizons-check:end -->)/;
+  if (!re.test(readme)) {
+    console.error('README.md has no <!-- horizons-check:start --> / <!-- horizons-check:end --> marks; nothing written.');
+    process.exit(1);
+  }
+  writeFileSync(path, readme.replace(re, `$1\n${lines.join('\n')}\n$2`));
+  console.log('\nREADME.md updated.');
+}

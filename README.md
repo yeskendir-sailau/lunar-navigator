@@ -35,14 +35,16 @@ It needs internet for one thing only: three.js is loaded from a CDN.
 
 | What | Source | Used for |
 |---|---|---|
-| Surface elevation of the Moon | LOLA, Lunar Orbiter Laser Altimeter. Barker, M. K. et al. (2023), LOLA elevation maps _(team: add the full reference: title, journal, DOI)_. | Terrain horizon (see "Limitations": the profiles are not included yet) |
+| Surface elevation of the Moon | LOLA (Lunar Orbiter Laser Altimeter on NASA's LRO), map `LDEM_80S_80MPP_ADJ` (south of 80° S, 80 m per pixel). Barker, M. K. et al. (2023), Planet. Sci. J. 4, 183, doi:10.3847/PSJ/acf3e1 | Real terrain horizon for 6 points near the south pole: `tools/make_horizons.py` → `data/horizons.json` |
 | Positions of the Sun and Earth | NASA/JPL ephemeris DE421, Moon-fixed frame MOON_ME_DE421, sampled every hour by `tools/make_ephemeris.py` into `data/sun_earth.json` | Sun and Earth elevation, day and night, phases |
 | Landing and impact sites | NASA NSSDC lists of lunar sites and artifact impacts; NASA 2011 document | `data/sites.json` (coordinates, dates, source link for every site) |
 | Rules for neighbours | NASA, *NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts* (2011, Rev. A) | Keep-out distances, gravel distance, horizon distance |
-| Moon texture | NASA Scientific Visualization Studio, CGI Moon Kit _(team: confirm that `textures/moon_4k.jpg` comes from there and add the link)_ | The picture on the 3D Moon |
+| Moon height map and texture | NASA Scientific Visualization Studio, CGI Moon Kit, https://svs.gsfc.nasa.gov/4720 (built from LRO / LOLA data). `textures/moon_height.jpg` comes from there; _team: confirm that `textures/moon_4k.jpg` does too_ | The relief and the picture on the 3D Moon (relief exaggerated about 7×, picture only) |
+| Star sky | NASA Scientific Visualization Studio, Deep Star Maps 2020, https://svs.gsfc.nasa.gov/4851 (`starmap_2020_4k.exr` converted to `textures/stars.jpg`) | Background of the 3D scene (decorative, not turned to the exact date) |
 | Earth 3D model | `models/earth.glb` (textures reduced to 2048 px). _Team: add the author, the page you downloaded it from and the licence._ | Earth in the scene |
 | Sun surface texture | `textures/sun.jpg` from the Sun model archive. _Team: add the author, the page you downloaded it from and the licence._ | Sun in the scene |
 | 3D | three.js (MIT licence) | Drawing the Moon |
+| PDF | jsPDF 2.5.1 (MIT licence), stored in `vendor/` | The PDF report |
 
 NASA 2011 numbers we use (checked against the document): stay at least 2.0 km from a lander site (0.5 km from an impact site) or 3σ of the landing error, whichever is larger; rocks thrown by the Apollo landers reached up to 1.5 km; the lunar horizon is about 1.8 km away. The document is a **non-binding recommendation written for US government artifacts**. We apply the same distances to all sites as a precaution, which is our choice.
 
@@ -54,9 +56,34 @@ Our Sun and Earth elevations come from DE421 through the hourly file; JPL Horizo
 node tools/horizons_check.mjs
 ```
 
-and paste the table it prints below. (Needs internet. It compares 3 places × 3 dates × Sun and Earth. A difference of a few hundredths of a degree is expected: Horizons gives the apparent direction with light-time, we use the geometric direction.)
+(Needs internet. It compares 3 places × 3 dates × Sun and Earth.) With `node tools/horizons_check.mjs --readme` it also writes the table below by itself.
 
-_Table to be filled in from the output of `tools/horizons_check.mjs`. Not filled yet, so no numbers are claimed here._
+What differences to expect: Horizons looks from a point **on the surface**, we look from the **centre of the Moon**. For the Sun this changes almost nothing (the Sun is far away). For Earth it can shift the elevation by up to about 0.26° (the Moon's radius seen from Earth's distance), so Earth differences of a few tenths of a degree are expected, not an error.
+
+<!-- horizons-check:start -->
+| Place | Time (UTC) | Body | Horizons elevation | Our elevation | Difference |
+|---|---|---|---|---|---|
+| Apollo 11 | 2026-11-20 00:00 | Sun | 59.797° | 59.791° | −0.006° |
+| Apollo 11 | 2026-11-20 00:00 | Earth | 58.897° | 59.034° | +0.137° |
+| Apollo 11 | 2026-12-05 12:00 | Sun | -68.178° | -68.172° | +0.006° |
+| Apollo 11 | 2026-12-05 12:00 | Earth | 71.273° | 71.350° | +0.077° |
+| Apollo 11 | 2027-03-10 06:00 | Sun | -39.191° | -39.196° | −0.005° |
+| Apollo 11 | 2027-03-10 06:00 | Earth | 60.310° | 60.432° | +0.122° |
+| Apollo 17 | 2026-11-20 00:00 | Sun | 58.807° | 58.803° | −0.004° |
+| Apollo 17 | 2026-11-20 00:00 | Earth | 45.667° | 45.850° | +0.183° |
+| Apollo 17 | 2026-12-05 12:00 | Sun | -66.501° | -66.497° | +0.004° |
+| Apollo 17 | 2026-12-05 12:00 | Earth | 61.760° | 61.875° | +0.115° |
+| Apollo 17 | 2027-03-10 06:00 | Sun | -29.445° | -29.449° | −0.004° |
+| Apollo 17 | 2027-03-10 06:00 | Earth | 46.013° | 46.187° | +0.174° |
+| Near the south pole | 2026-11-20 00:00 | Sun | 4.506° | 4.506° | +0.000° |
+| Near the south pole | 2026-11-20 00:00 | Earth | 8.134° | 8.391° | +0.257° |
+| Near the south pole | 2026-12-05 12:00 | Sun | -2.066° | -2.065° | +0.001° |
+| Near the south pole | 2026-12-05 12:00 | Earth | -1.484° | -1.233° | +0.252° |
+| Near the south pole | 2027-03-10 06:00 | Sun | -5.184° | -5.183° | +0.001° |
+| Near the south pole | 2027-03-10 06:00 | Earth | 9.974° | 10.226° | +0.253° |
+
+Largest difference: 0.257° (Sun only: 0.006°). Checked on 2026-11-15 with the JPL Horizons API.
+<!-- horizons-check:end -->
 
 ## Tests
 
@@ -70,10 +97,10 @@ _Table to be filled in from the output of `tools/horizons_check.mjs`. Not filled
 ## Limitations (please read)
 
 - **The thresholds are our own choice.** NASA gives numbers only for the neighbour distances. The green / yellow / red limits for Energy and Communication (14-day window, Sun above 5°, 70 % / 30 % sunlit, and so on) are ours, kept in one file, `data/thresholds.json`, and explained in "How it is calculated". With a 30-day window every place is sunlit about 50 % of the time, so a 14-day window (about one lunar day of sunlight) is used. Other missions need other numbers.
-- **The horizon is flat unless terrain data is present.** `data/horizons.json` is empty at the moment: no terrain profiles from LOLA are included. So mountains, crater walls and the long shadows near the poles are not counted, and the report says "Flat horizon, no terrain". Near the poles a flat-horizon result can be too optimistic. The code for terrain (horizon masks, Sun and Earth hidden behind a hill, neighbours shielded by terrain) is written and tested; it switches on for any place that has an entry in `data/horizons.json`. Terrain shielding of neighbours is a rough approximation: it knows how high the terrain is, not how far away.
+- **Real terrain horizon only for 6 points near the south pole.** `data/horizons.json` holds LOLA horizon profiles (360 directions, up to 100 km away, eye 2 m above the ground) for 5 crater areas (Shackleton, de Gerlache, Haworth, Faustini, Nobile; centres are approximate, see `data/pole_points.json`) and the listed landing site south of 80° S. There the report says "Terrain horizon used", and Sun / Earth hidden behind a crater wall count as not visible. Example: at Shackleton (-89.9, 129.3) a flat horizon gives "Earth in view 83 %", the real terrain gives 0 %. Everywhere else the horizon is flat and the report says "Flat horizon, no terrain". Why not everywhere: the LOLA map we use covers only the region south of 80° S, and a profile must be computed for each point in advance (about 10 s per point). Near the equator the Sun climbs to 60–90°, so a hill of a few degrees moves sunrise by a few hours out of a 14-day day; near the poles the Sun stays within a few degrees of the horizon, so terrain decides everything. More points can be added with `python tools/make_horizons.py --point NAME LAT LON`. Terrain shielding of neighbours is a rough approximation: it knows how high the terrain is, not how far away.
 - **Dust**: NASA gives no distance for dust, so we flag neighbours within twice the horizon distance (3.6 km) as "may be in line of sight". This is an approximation.
-- The 3D Moon is a smooth sphere: it shows the phase, not mountain shadows. For the exact light at a point, use the report and the graph.
-- Sun and Earth are treated as points (the centre of the disc); no atmosphere on the Moon, so no refraction.
+- The relief on the 3D Moon (CGI Moon Kit height map) is **exaggerated about 7×** so that it can be seen; it is a picture only. The report and the Sky view use the real LOLA heights (where available), not the 3D picture.
+- Sun and Earth are treated as points (the centre of the disc), seen from the centre of the Moon; for Earth this ignores a shift of up to about 0.26° for an observer on the surface. No atmosphere on the Moon, so no refraction.
 - Sun and Earth data cover only the dates in `data/sun_earth.json`. Outside this range the report says "No data".
 - Site coordinates are from public lists and are good to roughly tens of metres to a few kilometres, depending on the mission. Landing accuracy in the report is 1σ and can be changed (10 m – 3 km).
 - The "Lander size" list (Small CLPS / Medium heavy cargo / Large crewed) is a note only: we do not yet have a verified rule for what it would change, so it does not change any colour. The weight ranges in it are approximate.

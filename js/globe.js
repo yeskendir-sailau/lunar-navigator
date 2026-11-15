@@ -227,19 +227,30 @@ if (SUN_TEXTURE && !SUN_MODEL) {
 }
 
 let earthDir = null;   // последнее направление на Землю (оси three.js), единичный вектор
+let bodiesHidden = false;   // на стартовом экране Солнце и Земля спрятаны (js/intro.js)
+let sunKnown = false, earthKnown = false;
+
+// Спрятать / показать Солнце и Землю в сцене (направления при этом продолжают обновляться)
+export function setBodiesHidden(hidden) {
+  bodiesHidden = hidden;
+  sunMarker.visible = sunKnown && !hidden;
+  earthMarker.visible = earthKnown && !hidden;
+}
 
 // Направить Солнце и Землю по реальным данным.
 // Принимают направление в осях three.js: (x, y, z) = (X, Z, -Y) из системы Луны (см. geo.js).
 export function setSunDirection(x, y, z) {
   sun.position.set(x, y, z).multiplyScalar(5);
   sunMarker.position.set(x, y, z).normalize().multiplyScalar(SUN_DISTANCE);
-  sunMarker.visible = true;
+  sunKnown = true;
+  sunMarker.visible = !bodiesHidden;
 }
 export function setEarthDirection(x, y, z) {
   earthshine.position.set(x, y, z).multiplyScalar(5);
   earthDir = new THREE.Vector3(x, y, z).normalize();
   earthMarker.position.copy(earthDir).multiplyScalar(EARTH_DISTANCE);
-  earthMarker.visible = true;
+  earthKnown = true;
+  earthMarker.visible = !bodiesHidden;
 }
 
 // Режим света: 'real' — только Солнце (видны фазы), 'full' — Луна освещена со всех сторон

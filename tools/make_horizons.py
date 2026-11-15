@@ -163,8 +163,11 @@ def main():
             short = int((res["reach_km"] < args.max_km * 0.5).sum())
             print(f"высота {res['height_m']} м, самый высокий горизонт {m[k]:.2f}° на азимуте {k}°, "
                   f"медиана {np.nanmedian(m):.2f}°, направлений с обрезанным обзором: {short}/360")
+            # Формат, который читает сайт (js/horizon.js): elevation_deg — 360 чисел, без пустых значений.
+            # Где данных нет, ставим ровный горизонт для глаза на высоте мачты.
+            flat = -math.degrees(math.acos(R / (R + args.mast)))
             out.append({**p, "height_m": res["height_m"],
-                        "mask": [None if not math.isfinite(v) else round(float(v), 3) for v in m],
+                        "elevation_deg": [round(float(v), 3) if math.isfinite(v) else round(flat, 3) for v in m],
                         "reach_km": [round(float(v), 1) for v in res["reach_km"]]})
 
     meta = {
@@ -173,7 +176,8 @@ def main():
         "azimuth": "0..359 градусов от севера по часовой стрелке, шаг 1",
         "note": "reach_km — до какого расстояния есть данные; если мало, горизонт в этом направлении занижен",
     }
-    Path(args.out).write_text(json.dumps({"meta": meta, "places": out}, ensure_ascii=False), encoding="utf-8")
+    result = {"format": 1, "azimuth_step_deg": 1, "meta": meta, "points": out}
+    Path(args.out).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
     print(f"Записано {len(out)} мест в {args.out}")
 
 

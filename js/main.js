@@ -13,6 +13,7 @@ import { buildReport, STATUS } from './report-logic.js';
 import { createReportCard } from './report-card.js';
 import { createViewControls } from './view-controls.js';
 import { createStartScreen } from './start-screen.js';
+import { createIntro } from './intro.js';
 import { createTopTools, getTheme } from './theme.js';
 import { askTour, runTour } from './tour.js';
 import { createSkyPanel } from './sky-panel.js';
@@ -22,7 +23,14 @@ const url = path => new URL(path, import.meta.url);
 // Главный экран: только на страницах с <body data-start> (index.html). Луна уже загружается под ним.
 const hasStart = document.body.hasAttribute('data-start');
 let startTour = () => {};   // настоящая функция появится ниже, когда панели будут готовы
-if (hasStart) createStartScreen({ onStart: () => setTimeout(() => askTour({ onYes: () => startTour() }), 650) });
+// Стартовый экран: космос и Луна справа внизу (js/intro.js), по START камера летит к Луне, потом вопрос про обучение
+if (hasStart) {
+  const intro = createIntro();
+  createStartScreen({
+    onLaunch: () => intro.flyIn(3000),
+    onStart: () => setTimeout(() => askTour({ onYes: () => startTour() }), 250),
+  });
+}
 
 // Тема (тёмная / светло-серая) и кнопка «?» — обучение
 createTopTools({ onHelp: () => startTour() });
