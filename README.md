@@ -2,7 +2,9 @@
 
 **Pick a spot on the Moon and a date. Get a traffic-light answer: is there enough sunlight, can you see Earth, and is it safe for the landing sites that are already there?**
 
-Made for NASA Space Apps Challenge 2026. Live site: _add your GitHub Pages link here_ (`https://YOUR_LOGIN.github.io/lunar-navigator/`).
+Made for NASA Space Apps Challenge 2026.
+
+**Live site: https://yeskendir-sailau.github.io/lunar-navigator/**
 
 ## What it does
 
@@ -35,22 +37,25 @@ It needs internet for one thing only: three.js is loaded from a CDN.
 
 | What | Source | Used for |
 |---|---|---|
-| Surface elevation of the Moon | LOLA (Lunar Orbiter Laser Altimeter on NASA's LRO), map `LDEM_80S_80MPP_ADJ` (south of 80° S, 80 m per pixel). Barker, M. K. et al. (2023), Planet. Sci. J. 4, 183, doi:10.3847/PSJ/acf3e1 | Real terrain horizon for 6 points near the south pole: `tools/make_horizons.py` → `data/horizons.json` |
-| Positions of the Sun and Earth | NASA/JPL ephemeris DE421, Moon-fixed frame MOON_ME_DE421, sampled every hour by `tools/make_ephemeris.py` into `data/sun_earth.json` | Sun and Earth elevation, day and night, phases |
-| Landing and impact sites | NASA NSSDC lists of lunar sites and artifact impacts; NASA 2011 document | `data/sites.json` (coordinates, dates, source link for every site) |
-| Rules for neighbours | NASA, *NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts* (2011, Rev. A) | Keep-out distances, gravel distance, horizon distance |
+| Surface elevation of the Moon | LOLA (Lunar Orbiter Laser Altimeter on NASA's LRO), map `LDEM_80S_80MPP_ADJ` (south of 80° S, 80 m per pixel), NASA Goddard PGDA: [product page](https://pgda.gsfc.nasa.gov/products/90), [file](https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF) (181 MB, not stored in this repo). Barker, M. K. et al. (2023), Planet. Sci. J. 4, 183, [doi:10.3847/PSJ/acf3e1](https://doi.org/10.3847/PSJ/acf3e1) | Real terrain horizon for 6 points near the south pole: `tools/make_horizons.py` → `data/horizons.json` |
+| Positions of the Sun and Earth | NASA/JPL ephemeris DE421 ([de421.bsp](https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de421.bsp)) and the Moon orientation files from NASA NAIF (SPICE): [moon_pa_de421_1900-2050.bpc](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/moon_pa_de421_1900-2050.bpc), [moon_080317.tf](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/fk/satellites/moon_080317.tf), [pck00008.tpc](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/a_old_versions/pck00008.tpc). Moon-fixed frame MOON_ME_DE421, read with [Skyfield](https://rhodesmill.org/skyfield/) and sampled every hour by `tools/make_ephemeris.py` into `data/sun_earth.json` | Sun and Earth elevation, day and night, phases |
+| Landing and impact sites | NASA NSSDC: [lunar landing sites](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html), [artifact impacts](https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html); NASA 2011 document | `data/sites.json` (coordinates, dates, source link for every site) |
+| Planned missions | NASA, [Artemis III candidate landing regions](https://www.nasa.gov/news-release/nasa-identifies-candidate-regions-for-landing-next-americans-on-moon/) (2024); [Chang'e 7](https://www.planetary.org/space-missions/change-7) | `data/planned.json`: names and links only. Coordinates are not filled yet, so these are not on the map and do not change any colour |
+| Rules for neighbours | NASA, *NASA's Recommendations to Space-Faring Entities: How to Protect and Preserve the Historic and Scientific Value of U.S. Government Lunar Artifacts* (2011, Rev. A), [PDF](https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf) | Keep-out distances, gravel distance, horizon distance |
 | Moon height map and texture | NASA Scientific Visualization Studio, CGI Moon Kit, https://svs.gsfc.nasa.gov/4720 (built from LRO / LOLA data). `textures/moon_height.jpg` comes from there; _team: confirm that `textures/moon_4k.jpg` does too_ | The relief and the picture on the 3D Moon (relief exaggerated about 7×, picture only) |
 | Star sky | NASA Scientific Visualization Studio, Deep Star Maps 2020, https://svs.gsfc.nasa.gov/4851 (`starmap_2020_4k.exr` converted to `textures/stars.jpg`) | Background of the 3D scene (decorative, not turned to the exact date) |
 | Earth 3D model | `models/earth.glb` (textures reduced to 2048 px). _Team: add the author, the page you downloaded it from and the licence._ | Earth in the scene |
 | Sun surface texture | `textures/sun.jpg` from the Sun model archive. _Team: add the author, the page you downloaded it from and the licence._ | Sun in the scene |
-| 3D | three.js (MIT licence) | Drawing the Moon |
-| PDF | jsPDF 2.5.1 (MIT licence), stored in `vendor/` | The PDF report |
+| Check of the Sun and Earth positions | NASA/JPL [Horizons](https://ssd.jpl.nasa.gov/horizons/) through its [API](https://ssd.jpl.nasa.gov/api/horizons.api) | `tools/horizons_check.mjs`, table below |
+| 3D | [three.js](https://threejs.org/) 0.160 (MIT licence) | Drawing the Moon |
+| PDF | [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (MIT licence), stored in `vendor/` | The PDF report |
+| Data preparation (Python, run once on our computer) | [Skyfield](https://rhodesmill.org/skyfield/), [NumPy](https://numpy.org/), [rasterio](https://rasterio.readthedocs.io/), [pyproj](https://pyproj4.github.io/pyproj/) | `tools/make_ephemeris.py`, `tools/make_horizons.py` |
 
 NASA 2011 numbers we use (checked against the document): stay at least 2.0 km from a lander site (0.5 km from an impact site) or 3σ of the landing error, whichever is larger; rocks thrown by the Apollo landers reached up to 1.5 km; the lunar horizon is about 1.8 km away. The document is a **non-binding recommendation written for US government artifacts**. We apply the same distances to all sites as a precaution, which is our choice.
 
 ## Comparison with JPL Horizons
 
-Our Sun and Earth elevations come from DE421 through the hourly file; JPL Horizons is an independent service built on the same kind of ephemerides. To check we did not make a mistake in the geometry, run:
+Our Sun and Earth elevations come from DE421 through the hourly file; [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) is an independent service built on the same kind of ephemerides. To check we did not make a mistake in the geometry, run:
 
 ```
 node tools/horizons_check.mjs
@@ -117,7 +122,7 @@ Largest difference: 0.257° (Sun only: 0.006°). Checked on 2026-11-15 with the 
 
 ## Use of AI
 
-The code, the texts and the tests of this project were written with the help of **Claude** (Anthropic): the team described what it wanted, Claude wrote the code, and the team ran it, checked the numbers against NASA and JPL sources, chose the thresholds and decided what to include. All data come from the sources listed above; no numbers were invented by the AI. Where we could not check something (for example the JPL Horizons table), the README says so.
+The code, the texts and the tests of this project were written with the help of **Claude** (Anthropic): the team described what it wanted, Claude wrote the code, and the team ran it, checked the numbers against NASA and JPL sources, chose the thresholds and decided what to include. All data come from the sources listed above; no numbers were invented by the AI. Where we could not check something (for example the authors of the Earth model and the Sun texture), the README says so.
 
 ## What was prepared before the hackathon and what was done on 14–15 November
 
