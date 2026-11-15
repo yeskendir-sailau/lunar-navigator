@@ -274,10 +274,30 @@ const starMaterial = new THREE.PointsMaterial({
 const stars = new THREE.Points(starGeometry, starMaterial);
 scene.add(stars);
 
+// 8b. НАСТОЯЩЕЕ ЗВЁЗДНОЕ НЕБО: карта неба NASA (Deep Star Maps 2020, svs.gsfc.nasa.gov/4851),
+// положенная в textures/stars.jpg. Если файла нет — остаются простые точки выше.
+// Небо декоративное: оно правильное по виду (Млечный Путь, яркие звёзды), но не повёрнуто точно под дату.
+// Звёзды тусклые или слишком яркие? Меняйте STAR_BRIGHTNESS (например, 0.6 или 1.5).
+const STAR_BRIGHTNESS = 1.0;
+let starSky = null;
+new THREE.TextureLoader().load(
+  fileUrl('../textures/stars.jpg'),
+  texture => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;   // картинка «развёрнутого» неба -> сфера вокруг сцены
+    texture.colorSpace = THREE.SRGBColorSpace;
+    starSky = texture;
+    scene.background = starSky;
+    scene.backgroundIntensity = STAR_BRIGHTNESS;
+    stars.visible = false;   // настоящие звёзды вместо простых точек
+  },
+  undefined,
+  () => console.warn('textures/stars.jpg not found: using simple star dots'),
+);
+
 // Тема (js/theme.js) меняет только панели: космос и звёзды всегда тёмные
 export function setSceneTheme() {
-  scene.background = null;
-  stars.visible = true;
+  scene.background = starSky;
+  stars.visible = !starSky;
 }
 
 // 9. ПОЛЁТ КАМЕРЫ К ТОЧКЕ (для карточки места)
