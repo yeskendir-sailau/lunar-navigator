@@ -1,27 +1,27 @@
 {
   "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_artifact_impacts.html": {
     "changed": null,
-    "checked": "2026-11-22 14:21 UTC",
+    "checked": "2026-11-23 17:44 UTC",
     "hash": "2f8ad0ec340cf8ae9e141df3c1cf787b100ef5339966ba600afcfa2ab72de0fa"
   },
   "https://nssdc.gsfc.nasa.gov/planetary/lunar/lunar_sites.html": {
     "changed": null,
-    "checked": "2026-11-22 14:21 UTC",
+    "checked": "2026-11-23 17:44 UTC",
     "hash": "b335fafbd69e628aa59516ce593d369f4e77ea06eb4a1dc9392f13460e0317e6"
   },
   "https://ssd.jpl.nasa.gov/horizons/": {
     "changed": null,
-    "checked": "2026-11-22 14:21 UTC",
+    "checked": "2026-11-23 17:44 UTC",
     "hash": "cb067c16e6db72d70a6f4f7aab69c5f0a5d81dfc8139812f0d281d94e1af0ff5"
   },
   "https://svs.gsfc.nasa.gov/4720": {
     "changed": null,
-    "checked": "2026-11-22 14:21 UTC",
+    "checked": "2026-11-23 17:44 UTC",
     "hash": "7280ac5008227375012f2c8d09f747f177398f098033d76e50d54c8ea361b9ec"
   },
   "https://www.nasa.gov/pdf/617743main_NASA-USG_LUNAR_HISTORIC_SITES_RevA-508.pdf": {
     "changed": null,
-    "checked": "2026-11-22 14:21 UTC",
+    "checked": "2026-11-23 17:44 UTC",
     "hash": "01b92b7884d1fc5ffbeb39cf8388197981f002648195105a519915adb16a34e3"
   }
 }
